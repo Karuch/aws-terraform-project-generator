@@ -1,4 +1,3 @@
-project              = "myproject"
 environment          = "dev"
 aws_region           = "us-east-1"   // make sure to change this to desired region (must be same as provider.tf)
 vpc_cidr             = "10.1.0.0/16" // remember to not use overlapping CIDR

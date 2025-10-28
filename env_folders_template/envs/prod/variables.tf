@@ -19,8 +19,8 @@ variable "vpc_cidr" {
 }
 
 variable "availability_zones" {
-  description = "Availability zones for this environment"
-  type        = list(string)
+  description   = "Availability zones for this environment"
+  type          = list(string)
 }
 
 variable "subnet_count" {
@@ -49,7 +49,7 @@ variable "ami_id" {
 }
 
 variable "instance_type" {
-  description = "Instance type for EC2 instances" 
+  description = "Instance type for EC2 instances"
   type        = string
 }
 
