@@ -7,7 +7,7 @@ it currently support two structure methodology: `env folders` and `workspaces`.
 
 Clone the repo:
 ```bash
-git clone git@github.com:Karuch/aws-ezLogin
+git clone git@github.com:Karuch/aws-terraform-project-generator
 ```
 
 ## Generate S3 backend and DynamoDB lock
@@ -64,9 +64,9 @@ terraform apply
 ### for `--workspaces` project
 
 ```
-terraform workspace new dev
-terraform workspace new staging
 terraform workspace new prod
+terraform workspace new staging
+terraform workspace new dev
 ```
 apply dev:
 ```
