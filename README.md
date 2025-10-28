@@ -1,6 +1,6 @@
 # aws-terraform-project-generator
 
-aws-terraform-project-generator is a project to deploy basic terraform structure template ready to use with **best practices** and **CI/CD**!
+**aws-terraform-project-generator** is a project to deploy basic terraform structure template ready to use with **best practices** and **CI/CD**!
 it currently support two structure methodology: `env folders` and `workspaces`.
 
 ## Getting Started
@@ -29,8 +29,9 @@ if yes, please use `--env folders`.
 Example: ./project_init/project_init.sh --env-folders myproject-backend myproject-lock us-east-1 myproject
 ```
 
-If your project will have the same resources across all stages (e.g prod, dev, staging) and the only
-difference is the values you will use in the variables in each environement, please use `--workspacs` 
+If your project will have the same resources across all stages (e.g prod, dev, staging) and the only  
+difference is the values you will use in the variables in each environement, please use `--workspacs`  
+note that for `terraform workspace` tfstate file will be created under `env:` directory in the remote state S3 bucket.
 ```
 ./project_init/project_init.sh
 Example: ./project_init/project_init.sh --workspaces myproject-backend myproject-lock us-east-1 myproject
@@ -135,7 +136,6 @@ This configuration creates 4 subnets within your VPC.
 |    3    | /19              | 8            | 8,192          |
 |    4    | /20              | 16           | 4,096          |
 
-
 ## Contributing
 
 1. Fork the Project
@@ -150,6 +150,6 @@ Distributed under the Apache License 2.0. See `LICENSE.txt` for more information
 
 ## Contact
 
-Email: talk474747@gmail.com
-Linkedin: [www.linkedin.com/in/tal-karucci](https://www.linkedin.com/in/tal-karucci-678286290)
-Project Link: [github.com/Karuch/aws-ezLogin](https://github.com/Karuch/aws-ezLogin)
+Email: talk474747@gmail.com  
+Linkedin: [www.linkedin.com/in/tal-karucci](https://www.linkedin.com/in/tal-karucci-678286290)  
+Project Link: [github.com/Karuch/aws-terraform-project-generator](https://github.com/Karuch/aws-terraform-project-generator)
