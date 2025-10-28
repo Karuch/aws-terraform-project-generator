@@ -42,21 +42,21 @@ Example: ./project_init/project_init.sh --workspaces myproject-backend myproject
 apply dev:
 ```
 cd <project_name>/envs/dev
-terraform init -reconfigure
+terraform init
 terraform plan
 terraform apply
 ```
 apply staging:
 ```
 cd <project_name>/envs/staging
-terraform init -reconfigure
+terraform init
 terraform plan
 terraform apply
 ```
 apply prod:
 ```
 cd <project_name>/envs/prod
-terraform init -reconfigure
+terraform init
 terraform plan
 terraform apply
 ```
@@ -73,6 +73,11 @@ terraform workspace new prod
 terraform workspace new staging
 terraform workspace new dev
 ```
+the current environment is not tied to shell but to `.terraform`,
+when you use `terraform workspace select` it will change the current workspace
+across all shells.
+**make sure you always using `terraform workspace select` before apply! (CI/CD does this automatically)**
+
 plan and apply dev:
 ```
 terraform workspace select dev
@@ -91,6 +96,45 @@ terraform workspace select prod
 terraform plan -var-file="vars/prod.tfvars"
 terraform apply -var-file="vars/prod.tfvars"
 ```
+
+## Generate subnets easily using the built in VPC module
+
+in `modules/vpc`  you've got main.tf with:
+```
+resource "aws_subnet" "subnets" {
+  count             = var.subnet_count
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = cidrsubnet(var.vpc_cidr, var.subnet_newbits, count.index)
+  availability_zone = element(var.availability_zones, count.index % length(var.availability_zones))
+
+  tags = {
+    Name        = "${var.project}-${var.environment}-${var.component}-${count.index}"
+  }
+}
+```
+| Variable             | Description                                                      | Example                                      |
+| -------------------- | ---------------------------------------------------------------- | -------------------------------------------- |
+| `vpc_cidr`           | Base CIDR block for the VPC                                      | `"10.0.0.0/16"`                              |
+| `availability_zones` | List of AZs to spread subnets across in a round robin            | `["us-east-1a", "us-east-1b", "us-east-1c"]` |
+| `subnet_count`       | Total number of subnets to create                                | `6`                                          |
+| `subnet_newbits`     | How many bits to add to split the main CIDR into smaller subnets | `4`                                          |
+
+This configuration creates 4 subnets within your VPC.
+| Subnet | CIDR Block   | Availability Zone |
+| :----- | :----------- | :---------------- |
+| 0      | 10.1.0.0/20  | us-east-1a        |
+| 1      | 10.1.16.0/20 | us-east-1b        |
+| 2      | 10.1.32.0/20 | us-east-1c        |
+| 3      | 10.1.48.0/20 | us-east-1a        |
+
+| Newbits | Resulting Prefix | # of Subnets | IPs per Subnet |
+| :-----: | :--------------- | :----------- | :------------- |
+|    0    | /16              | 1            | 65,536         |
+|    1    | /17              | 2            | 32,768         |
+|    2    | /18              | 4            | 16,384         |
+|    3    | /19              | 8            | 8,192          |
+|    4    | /20              | 16           | 4,096          |
+
 
 ## Contributing
 
