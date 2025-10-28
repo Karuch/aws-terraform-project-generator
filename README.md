@@ -62,25 +62,33 @@ terraform apply
 ```
 
 ### for `--workspaces` project
-
+initiallize project
+```
+cd <project_name>
+terraform init
+```
+create workspaces
 ```
 terraform workspace new prod
 terraform workspace new staging
 terraform workspace new dev
 ```
-apply dev:
+plan and apply dev:
 ```
 terraform workspace select dev
+terraform plan -var-file="vars/dev.tfvars"
 terraform apply -var-file="vars/dev.tfvars"
 ```
 apply staging:
 ```
 terraform workspace select staging
+terraform plan -var-file="vars/staging.tfvars"
 terraform apply -var-file="vars/staging.tfvars"
 ```
 apply prod:
 ```
 terraform workspace select prod
+terraform plan -var-file="vars/prod.tfvars"
 terraform apply -var-file="vars/prod.tfvars"
 ```
 
