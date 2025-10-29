@@ -3,7 +3,7 @@ name: Simple Echo (Self-Hosted)
 on:
   push:
     branches:
-      - dev
+      - cicd
 
 jobs:
   say-hello:
