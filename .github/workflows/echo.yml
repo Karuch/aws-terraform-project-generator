@@ -32,7 +32,10 @@ jobs:
 
       - name: Run TFLint
         working-directory: check
-        run: tflint --init && tflint
+        run: |
+          ls
+          pwd
+          tflint --init && tflint
 
       - name: Terraform Format Check
         working-directory: check
