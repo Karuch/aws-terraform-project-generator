@@ -1,15 +1,41 @@
-name: Simple Echo (Self-Hosted)
+name: Terraform CI (Self-Hosted Alpine)
 
 on:
   push:
-    branches:
-      - cicd
+    branches: [ "cicd" ]
 
 jobs:
-  say-hello:
+  terraform:
     runs-on: self-hosted
     container:
-      image: alpine:latest
+      image: alpine:3.20
     steps:
-      - name: Echo message
-        run: echo "Hello from my self-hosted runner!2"
+      - name: Install dependencies
+        run: |
+          apk add --no-cache bash curl git openssl unzip
+          # install Terraform
+          TF_VERSION=1.9.8
+          curl -fsSL https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip -o tf.zip
+          unzip tf.zip && mv terraform /usr/local/bin/ && rm tf.zip
+          terraform version
+          # install TFLint
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --version
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run TFLint
+        working-directory: check
+        run: tflint --init && tflint
+
+      - name: Terraform Format Check
+        working-directory: check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init & Plan
+        working-directory: check
+        run: |
+          terraform init -backend=false
+          terraform validate
+          terraform plan -out=tfplan
