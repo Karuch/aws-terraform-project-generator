@@ -1,49 +1,74 @@
-name: Terraform CI (Self-Hosted Alpine)
+name: Terraform CI (Self-Hosted Terraform)
 
 on:
   push:
     branches: [ "cicd" ]
 
-
-# need to OIDC tal rememebr don't be lame
+# Tal — remember: OIDC later, no static creds!
 
 jobs:
-  terraform:
+  fmt:
     runs-on: self-hosted
     container:
-      image: alpine:3.20
+      image: hashicorp/terraform:1.13.4
     steps:
-      - name: Install dependencies
-        run: |
-          ls
-          echo "^^^^^"
-          apk add --no-cache bash curl git openssl unzip
-          # install Terraform
-          TF_VERSION=1.9.8
-          curl -fsSL https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip -o tf.zip
-          unzip tf.zip && mv terraform /usr/local/bin/ && rm tf.zip
-          terraform version
-          # install TFLint
-          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
-          tflint --version
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run TFLint
-        working-directory: check
-        run: |
-          ls
-          pwd
-          tflint --init && tflint
-
+      - uses: actions/checkout@v4
       - name: Terraform Format Check
         working-directory: check
         run: terraform fmt -check -recursive
 
-      - name: Terraform Init & Plan
+  lint:
+    runs-on: self-hosted
+    container:
+      image: hashicorp/terraform:1.13.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install TFLint
+        run: |
+          apk add --no-cache curl
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+      - name: Run TFLint
+        working-directory: check
+        run: |
+          tflint --init
+          tflint
+
+  plan:
+    runs-on: self-hosted
+    container:
+      image: hashicorp/terraform:1.13.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Terraform Init, Validate & Plan
         working-directory: check
         run: |
           terraform init -backend=false
           terraform validate
           terraform plan -out=tfplan
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: check/tfplan
+
+  checkov:
+    # 👇 Run only after all other jobs succeed
+    needs: [fmt, lint, plan]
+    runs-on: self-hosted
+    container:
+      image: hashicorp/terraform:1.13.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Checkov
+        run: |
+          apk add --no-cache python3 py3-pip
+          pip install checkov
+      - name: Run Checkov Scan
+        working-directory: check
+        run: |
+          checkov -d . --framework terraform --compact --quiet
+      - name: Upload Checkov Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report
+          path: checkov_report.json
+        if: always()
