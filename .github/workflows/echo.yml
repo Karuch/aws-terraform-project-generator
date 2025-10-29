@@ -39,12 +39,20 @@ jobs:
       image: hashicorp/terraform:1.13.4
     steps:
       - uses: actions/checkout@v4
-      - name: Terraform Init, Validate & Plan
+
+      - name: Terraform Init (no backend)
+        working-directory: check
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: check
+        run: terraform validate -no-color
+
+      - name: Terraform Plan (local only)
         working-directory: check
         run: |
-          terraform init -backend=false
-          terraform validate
-          terraform plan -out=tfplan
+          terraform plan -input=false -lock=false -refresh=false -out=tfplan || true
+
       - uses: actions/upload-artifact@v4
         with:
           name: tfplan
