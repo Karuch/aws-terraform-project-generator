@@ -8,6 +8,8 @@ on:
 jobs:
   say-hello:
     runs-on: self-hosted
+    container:
+      image: alpine:latest
     steps:
       - name: Echo message
         run: echo "Hello from my self-hosted runner!2"
