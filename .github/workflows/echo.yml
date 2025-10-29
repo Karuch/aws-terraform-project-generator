@@ -4,6 +4,9 @@ on:
   push:
     branches: [ "cicd" ]
 
+
+# need to OIDC tal rememebr don't be lame
+
 jobs:
   terraform:
     runs-on: self-hosted
@@ -12,6 +15,8 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
+          ls
+          echo "^^^^^"
           apk add --no-cache bash curl git openssl unzip
           # install Terraform
           TF_VERSION=1.9.8
