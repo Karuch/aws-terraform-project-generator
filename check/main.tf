@@ -12,7 +12,7 @@ module "vpc" {
 }
 
 module "ec2" {
-  source = "./odules/ec2"
+  source = "./modules/ec2"
 
   project       = var.project
   environment   = var.environment

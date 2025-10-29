@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install TFLint
         run: |
-          apk add --no-cache curl
+          apk add --no-cache curl bash
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
       - name: Run TFLint
         working-directory: check
