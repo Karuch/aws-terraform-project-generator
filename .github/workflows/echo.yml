@@ -10,4 +10,4 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Echo message
-        run: echo "Hello from my self-hosted runner!"
+        run: echo "Hello from my self-hosted runner!2"
