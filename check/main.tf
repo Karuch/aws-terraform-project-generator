@@ -16,7 +16,7 @@ module "ec2" {
 
   project       = var.project
   environment   = var.environment
-  vpc_id        = modle.vpc.vpc_id
+  vpc_id        = module.vpc.vpc_id
   subnet_ids    = module.vpc.subnet_ids
   vpc_cidr      = module.vpc.vpc_cidr
   ami_id        = var.ami_id

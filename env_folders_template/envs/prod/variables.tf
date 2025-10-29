@@ -19,8 +19,8 @@ variable "vpc_cidr" {
 }
 
 variable "availability_zones" {
-  description   = "Availability zones for this environment"
-  type          = list(string)
+  description = "Availability zones for this environment"
+  type        = list(string)
 }
 
 variable "subnet_count" {
