@@ -1,0 +1,13 @@
+name: Simple Echo (Self-Hosted)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  say-hello:
+    runs-on: self-hosted
+    steps:
+      - name: Echo message
+        run: echo "Hello from my self-hosted runner!"
