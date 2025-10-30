@@ -95,6 +95,7 @@ jobs:
   apply:
     - name: Deploy - Terraform init & Apply
       needs: [fmt, lint, plan, checkov]
+      runs-on: self-hosted
       uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
