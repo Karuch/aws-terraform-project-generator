@@ -85,7 +85,7 @@ jobs:
           if-no-files-found: ignore
 
   fmt:
-    needs: [checkov]
+    needs: [checkov, lint, plan]
     name: Terraform Format Check
     runs-on: self-hosted
     container:
