@@ -59,21 +59,20 @@ jobs:
           path: check/tfplan
 
   checkov:
-    # 👇 Run only after all other jobs succeed
     needs: [fmt, lint, plan]
     runs-on: self-hosted
     container:
       image: hashicorp/terraform:1.13.4
     steps:
       - uses: actions/checkout@v4
+
       - name: Install Checkov
-        run: |
-          apk add --no-cache python3 py3-pip
-          pip install checkov
+        run: apk add --no-cache py3-checkov
+
       - name: Run Checkov Scan
         working-directory: check
-        run: |
-          checkov -d . --framework terraform --compact --quiet
+        run: checkov -d . --framework terraform --compact --quiet
+
       - name: Upload Checkov Report
         uses: actions/upload-artifact@v4
         with:
