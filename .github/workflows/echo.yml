@@ -67,7 +67,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Checkov
-        run: apk add --no-cache py3-checkov
+        run: |
+          apk add --no-cache python3 py3-pip
+          pip3 install --upgrade pip setuptools
+          pip3 install checkov
 
       - name: Run Checkov Scan
         working-directory: check
