@@ -7,6 +7,17 @@ on:
 # Tal — remember: OIDC later, no static creds!
 
 jobs:
+  fmt:
+    name: Terraform Format Check
+    runs-on: self-hosted
+    container:
+      image: hashicorp/terraform:1.13.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Terraform Format Check
+        working-directory: check
+        run: terraform fmt -check -recursive
+
   lint:
     name: Terraform Lint
     runs-on: self-hosted
@@ -57,7 +68,6 @@ jobs:
 
   checkov:
     name: Terraform Security Scan (Checkov)
-    needs: [lint, plan]
     runs-on: self-hosted
     container:
       image: hashicorp/terraform:1.13.4
@@ -83,15 +93,3 @@ jobs:
           name: checkov-report
           path: check/checkov_report.json
           if-no-files-found: ignore
-
-  fmt:
-    needs: [checkov, lint, plan]
-    name: Terraform Format Check
-    runs-on: self-hosted
-    container:
-      image: hashicorp/terraform:1.13.4
-    steps:
-      - uses: actions/checkout@v4
-      - name: Terraform Format Check
-        working-directory: check
-        run: terraform fmt -check -recursive
