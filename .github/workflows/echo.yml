@@ -92,45 +92,45 @@ jobs:
           path: check/checkov_report.json
           if-no-files-found: ignore
 
+ 
   apply:
-  name: Deploy - Terraform Apply
-  needs: [fmt, lint, plan, checkov]
-  runs-on: self-hosted
-  container:
-    image: hashicorp/terraform:1.13.4
-  env:
-    AWS_REGION: eu-west-1
-    AWS_ACCOUNT_ID: 123456789012
-    AWS_ROLE_NAME: terraform-ci-role
-    S3_BUCKET: my-terraform-state-bucket
-    TF_STATE_KEY: terraform/project/terraform.tfstate
-    DDB_LOCK_TABLE: terraform-locks
+    name: Deploy - Terraform Apply
+    needs: [fmt, lint, plan, checkov]
+    runs-on: self-hosted
+    container:
+      image: hashicorp/terraform:1.13.4
+    env:
+      AWS_REGION: eu-west-1
+      AWS_ACCOUNT_ID: 123456789012
+      AWS_ROLE_NAME: terraform-ci-role
+      S3_BUCKET: my-terraform-state-bucket
+      TF_STATE_KEY: terraform/project/terraform.tfstate
+      DDB_LOCK_TABLE: terraform-locks
+    steps:
+      - uses: actions/checkout@v4
 
-  steps:
-    - uses: actions/checkout@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    - name: Configure AWS credentials (OIDC)
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.13.4
+      - name: Terraform Init
+        working-directory: infra
+        run: |
+          terraform init \
+            -input=false \
+            -backend-config="bucket=${{ env.S3_BUCKET }}" \
+            -backend-config="key=${{ env.TF_STATE_KEY }}" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
+            -backend-config="encrypt=true"
 
-    - name: Terraform Init
-      working-directory: infra
-      run: |
-        terraform init \
-          -input=false \
-          -backend-config="bucket=${{ env.S3_BUCKET }}" \
-          -backend-config="key=${{ env.TF_STATE_KEY }}" \
-          -backend-config="region=${{ env.AWS_REGION }}" \
-          -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
-          -backend-config="encrypt=true"
-
-    - name: Terraform Apply
-      working-directory: infra
-      run: terraform apply -auto-approve -input=false
+      - name: Terraform Apply
+        working-directory: infra
+        run: terraform apply -auto-approve -input=false
