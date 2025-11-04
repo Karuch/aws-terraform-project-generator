@@ -122,7 +122,7 @@ jobs:
           
           echo ""
           echo "🔹 Full role ARN string:"
-          echo "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}"
+          echo "arn:aws:iam::061039770549:role/terraform-shit"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
