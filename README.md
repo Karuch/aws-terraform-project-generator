@@ -98,6 +98,42 @@ terraform plan -var-file="vars/prod.tfvars"
 terraform apply -var-file="vars/prod.tfvars"
 ```
 
+## Create identity provider for CI/CD
+
+Create OIDC provider for github actions if not exist:
+```
+aws iam create-open-id-connect-provider \
+  --url "https://token.actions.githubusercontent.com" \
+  --client-id-list "sts.amazonaws.com
+```
+Create IAM role with desired permissions
+Create Trusted Policy for the IAM role to trust the OIDC:
+```
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Principal": {
+				"Federated": "arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com"
+			},
+			"Action": "sts:AssumeRoleWithWebIdentity",
+			"Condition": {
+				"StringEquals": {
+					"token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+				},
+				"StringLike": {
+					"token.actions.githubusercontent.com:sub": "repo:<org>/<project>:<branch>"
+				}
+			}
+		}
+	]
+}
+```
+
+
+
+
 ## Generate subnets easily using the built in VPC module
 
 in `modules/vpc`  you've got main.tf with:
