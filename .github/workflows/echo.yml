@@ -104,7 +104,7 @@ jobs:
     container:
       image: hashicorp/terraform:1.13.4
     env:
-      AWS_REGION: eu-west-1
+      AWS_REGION: us-east-1
       AWS_ACCOUNT_ID: 061039770549
       AWS_ROLE_NAME: terraform-ci-role
       S3_BUCKET: project-generator-test-backend
