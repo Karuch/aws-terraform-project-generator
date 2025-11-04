@@ -108,7 +108,6 @@ aws iam create-open-id-connect-provider \
 ```
 create trusted policy for the IAM role of the CI pipeline:
 ```
-```
 cat > trust-policy.json <<'EOF'
 {
   "Version": "2012-10-17",
