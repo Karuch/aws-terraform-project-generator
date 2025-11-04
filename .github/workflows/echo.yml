@@ -100,14 +100,13 @@ jobs:
   apply:
     name: Deploy - Terraform Apply
     needs: [fmt, lint, plan, checkov]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     container:
       image: hashicorp/terraform:1.13.4
     env:
-      ACCEPT_EULA: Y
       AWS_REGION: us-east-1
       AWS_ACCOUNT_ID: "061039770549"
-      AWS_ROLE_NAME: terraform-shit
+      AWS_ROLE_NAME: terraform-ci-role
       S3_BUCKET: project-generator-test-backend
       TF_STATE_KEY: check/terraform.tfstate
       DDB_LOCK_TABLE: project-generator-test-lock
@@ -115,24 +114,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Debug Environment Variables
-        run: |
-          echo "🔍 Printing all environment variables:"
-          printenv | sort
-          
-          echo ""
-          echo "🔹 Full role ARN string:"
-          echo "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}"
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v5.1.0
         with:
-          role-to-assume: arn:aws:iam::061039770549:role/terraform-shit
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
