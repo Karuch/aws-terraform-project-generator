@@ -3,7 +3,7 @@ name: Terraform CI (Self-Hosted Terraform)
 permissions:
   id-token: write
   contents: read
-  
+
 on:
   push:
     branches: [ "cicd" ]
@@ -113,6 +113,15 @@ jobs:
       ENVIRONMENT: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Debug Environment Variables
+        run: |
+          echo "🔍 Printing all environment variables:"
+          printenv | sort
+          
+          echo ""
+          echo "🔹 Full role ARN string:"
+          echo "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v5.1.0
