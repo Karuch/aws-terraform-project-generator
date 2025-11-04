@@ -106,7 +106,7 @@ jobs:
     env:
       ACCEPT_EULA: Y
       AWS_REGION: us-east-1
-      AWS_ACCOUNT_ID: 061039770549
+      AWS_ACCOUNT_ID: "061039770549"
       AWS_ROLE_NAME: terraform-shit
       S3_BUCKET: project-generator-test-backend
       TF_STATE_KEY: check/terraform.tfstate
