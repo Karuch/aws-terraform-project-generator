@@ -101,11 +101,12 @@ jobs:
       image: hashicorp/terraform:1.13.4
     env:
       AWS_REGION: eu-west-1
-      AWS_ACCOUNT_ID: 123456789012
+      AWS_ACCOUNT_ID: 061039770549
       AWS_ROLE_NAME: terraform-ci-role
-      S3_BUCKET: my-terraform-state-bucket
-      TF_STATE_KEY: terraform/project/terraform.tfstate
-      DDB_LOCK_TABLE: terraform-locks
+      S3_BUCKET: project-generator-test-backend
+      TF_STATE_KEY: check/terraform.tfstate
+      DDB_LOCK_TABLE: project-generator-test-lock
+      ENVIRONMENT: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
@@ -120,17 +121,25 @@ jobs:
         with:
           terraform_version: 1.13.4
 
-      - name: Terraform Init
-        working-directory: infra
+      - name: Terraform Workspace (create or select)
+        working-directory: check
         run: |
-          terraform init \
-            -input=false \
+          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
+
+      - name: Terraform Init
+        working-directory: check
+        run: |
+          terraform init -input=false -reconfigure \
             -backend-config="bucket=${{ env.S3_BUCKET }}" \
-            -backend-config="key=${{ env.TF_STATE_KEY }}" \
+            -backend-config="key=terraform/${{ env.ENVIRONMENT }}/terraform.tfstate" \
             -backend-config="region=${{ env.AWS_REGION }}" \
             -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
             -backend-config="encrypt=true"
 
+      - name: Terraform Plan
+        working-directory: check
+        run: terraform plan -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" -out=tfplan
+
       - name: Terraform Apply
-        working-directory: infra
-        run: terraform apply -auto-approve -input=false
+        working-directory: check
+        run: terraform apply "tfplan"
