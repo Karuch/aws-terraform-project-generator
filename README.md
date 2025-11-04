@@ -131,7 +131,7 @@ cat > trust-policy.json <<'EOF'
 }
 EOF
 ```
-create IAM policy for the IAM role of the CI pipeline:
+create IAM policy for the IAM role of the CI pipeline, **Make sure to includ permissons to deploy the AWS resources in your terraform configurations**:
 ```
 cat > terraform-backend-policy.json <<'EOF'
 {
@@ -177,13 +177,6 @@ aws iam put-role-policy \
   --policy-name <policy-name> \
   --policy-document file://terraform-backend-policy.json
 ```
-
-
-Create IAM role with desired permissions (make sure to include permissions). make sure to add there role example and maybe even create script to generate it but then  will need script for each ci type not only github
-Create Trusted Policy for the IAM role to trust the OIDC:
-
-
-
 
 ## Generate subnets easily using the built in VPC module
 
