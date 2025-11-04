@@ -106,7 +106,7 @@ jobs:
     env:
       AWS_REGION: us-east-1
       AWS_ACCOUNT_ID: 061039770549
-      AWS_ROLE_NAME: terraform-ci-role
+      AWS_ROLE_NAME: terraform-shit
       S3_BUCKET: project-generator-test-backend
       TF_STATE_KEY: check/terraform.tfstate
       DDB_LOCK_TABLE: project-generator-test-lock
@@ -126,7 +126,7 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v5.1.0
         with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }} 
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
