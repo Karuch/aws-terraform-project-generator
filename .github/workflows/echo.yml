@@ -1,5 +1,9 @@
 name: Terraform CI (Self-Hosted Terraform)
 
+permissions:
+  id-token: write
+  contents: read
+
 on:
   push:
     branches: [ "cicd" ]
