@@ -131,7 +131,8 @@ cat > trust-policy.json <<'EOF'
 }
 EOF
 ```
-create IAM policy for the IAM role of the CI pipeline, **Make sure to includ permissons to deploy the AWS resources in your terraform configurations**:
+create IAM policy for the IAM role of the CI pipeline. 
+**Make sure to includ permissons to deploy the AWS resources in your terraform configurations**:
 ```
 cat > terraform-backend-policy.json <<'EOF'
 {
