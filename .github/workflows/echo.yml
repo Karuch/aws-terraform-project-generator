@@ -122,7 +122,7 @@ jobs:
           
           echo ""
           echo "🔹 Full role ARN string:"
-          echo "arn:aws:iam::061039770549:role/terraform-shit"
+          echo "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -132,7 +132,7 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v5.1.0
         with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }} 
+          role-to-assume: arn:aws:iam::061039770549:role/terraform-shit
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform
