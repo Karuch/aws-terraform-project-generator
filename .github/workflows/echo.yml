@@ -124,6 +124,11 @@ jobs:
           echo "🔹 Full role ARN string:"
           echo "arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}"
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v5.1.0
         with:
