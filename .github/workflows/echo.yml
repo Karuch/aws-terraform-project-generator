@@ -108,7 +108,7 @@ jobs:
       AWS_ACCOUNT_ID: "061039770549"
       AWS_ROLE_NAME: terraform-ci-role
       S3_BUCKET: project-generator-test-backend
-      PROJECT: "talfoundsecret2"
+      PROJECT: "talfoundsecret3"
       DDB_LOCK_TABLE: project-generator-test-lock
       ENVIRONMENT: ${{ github.ref_name }}
     steps:
