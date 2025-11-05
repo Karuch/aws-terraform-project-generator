@@ -13,7 +13,9 @@ on:
 jobs:
   fmt:
     name: Test - Terraform Format Check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    container:
+      image: hashicorp/terraform:1.13.4
     steps:
       - uses: actions/checkout@v4
       - name: Terraform Format Check
@@ -22,7 +24,7 @@ jobs:
 
   lint:
     name: Test -Terraform Lint
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     container:
       image: hashicorp/terraform:1.13.4
     steps:
@@ -41,7 +43,9 @@ jobs:
 
   plan:
     name: Test - Terraform Plan
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    container:
+      image: hashicorp/terraform:1.13.4
     steps:
       - uses: actions/checkout@v4
 
@@ -68,7 +72,9 @@ jobs:
 
   checkov:
     name: Test - Security Scan
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    container:
+      image: hashicorp/terraform:1.13.4
     steps:
       - uses: actions/checkout@v4
       - name: Install Checkov
@@ -94,7 +100,9 @@ jobs:
   apply:
     name: Deploy - Terraform Apply
     needs: [fmt, lint, plan, checkov]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    container:
+      image: hashicorp/terraform:1.13.4
     env:
       AWS_REGION: us-east-1
       AWS_ACCOUNT_ID: "061039770549"
@@ -105,6 +113,12 @@ jobs:
       ENVIRONMENT: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Node.js (for GitHub Actions runtime)
+        run: |
+          apk add --no-cache nodejs npm
+          node --version
+          npm --version
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v5.1.0
