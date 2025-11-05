@@ -54,9 +54,10 @@ jobs:
             -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
             -backend-config="encrypt=true"
 
-      - name: Terraform Workspace Select
+      - name: Terraform Workspace (create or select)
         working-directory: check
-        run: terraform workspace select ${{ env.ENVIRONMENT }}
+        run: |
+          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
 
       - name: Terraform Destroy
         working-directory: check
