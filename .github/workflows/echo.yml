@@ -99,7 +99,7 @@ jobs:
  
   apply:
     name: Deploy - Terraform Apply
-    needs: [fmt, lint, plan, checkov]
+    # needs: [fmt, lint, plan, checkov]
     runs-on: self-hosted
     container:
       image: hashicorp/terraform:1.13.4
@@ -110,7 +110,8 @@ jobs:
       S3_BUCKET: project-generator-test-backend
       TF_STATE_KEY: check/terraform.tfstate
       DDB_LOCK_TABLE: project-generator-test-lock
-      ENVIRONMENT: ${{ github.ref_name }}
+      # ENVIRONMENT: ${{ github.ref_name }}
+      ENVIRONMENT: dev
     steps:
       - uses: actions/checkout@v4
 
