@@ -37,7 +37,7 @@ note that for `terraform workspace` tfstate file will be created under `env:` di
 Example: ./project_init/project_init.sh --workspaces myproject-backend myproject-lock us-east-1 myproject
 ```
 
-### 3A. apply manually (optional)
+### 3a. apply manually (optional)
 
 #### for `--env-folders` project
 apply dev:
@@ -98,7 +98,7 @@ terraform plan -var-file="vars/prod.tfvars"
 terraform apply -var-file="vars/prod.tfvars"
 ```
 
-### 3B Deploy using CI/CD (recommended over 3A)
+### 3b. Deploy using CI/CD (recommended over apply manually)
 
 Create OIDC provider for github actions if not exist:
 ```
