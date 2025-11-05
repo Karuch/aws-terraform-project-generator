@@ -39,8 +39,8 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform # that's needed only if terraform does not exist in the container or maybe just keep this in case client will change
+        uses: hashicorp/setup-terraform@v3  # the environement to something else then terraform container or I
         with:
           terraform_version: 1.13.4
 

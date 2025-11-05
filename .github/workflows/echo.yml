@@ -110,8 +110,7 @@ jobs:
       S3_BUCKET: project-generator-test-backend
       TF_STATE_KEY: check/terraform.tfstate
       DDB_LOCK_TABLE: project-generator-test-lock
-      # ENVIRONMENT: ${{ github.ref_name }}
-      ENVIRONMENT: dev
+      ENVIRONMENT: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
