@@ -131,11 +131,6 @@ jobs:
         with:
           terraform_version: 1.13.4
 
-      - name: Terraform Workspace (create or select)
-        working-directory: check
-        run: |
-          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
-
       - name: Terraform Init
         working-directory: check
         run: |
@@ -145,6 +140,11 @@ jobs:
             -backend-config="region=${{ env.AWS_REGION }}" \
             -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
             -backend-config="encrypt=true"
+
+      - name: Terraform Workspace (create or select)
+        working-directory: check
+        run: |
+          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
 
       - name: Terraform Plan
         working-directory: check
