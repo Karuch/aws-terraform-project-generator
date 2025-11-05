@@ -37,7 +37,7 @@ note that for `terraform workspace` tfstate file will be created under `env:` di
 Example: ./project_init/project_init.sh --workspaces myproject-backend myproject-lock us-east-1 myproject
 ```
 
-### 3a. apply manually (optional)
+### 3a. apply manually (go to '3b' for recommended CI/CD apply method)
 
 #### for `--env-folders` project
 apply dev:
