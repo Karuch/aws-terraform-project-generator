@@ -1,0 +1,65 @@
+name: Terraform Destroy (Manual)
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to destroy (e.g. dev, staging, prod)"
+        required: true
+        default: dev
+
+jobs:
+  destroy:
+    name: Destroy - Terraform
+    runs-on: self-hosted
+    container:
+      image: hashicorp/terraform:1.13.4
+    env:
+      AWS_REGION: us-east-1
+      AWS_ACCOUNT_ID: "061039770549"
+      AWS_ROLE_NAME: terraform-ci-role
+      S3_BUCKET: project-generator-test-backend
+      DDB_LOCK_TABLE: project-generator-test-lock
+      ENVIRONMENT: ${{ github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js (for GitHub Actions runtime)
+        run: |
+          apk add --no-cache nodejs npm
+          node --version
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+
+      - name: Terraform Init
+        working-directory: check
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=${{ env.S3_BUCKET }}" \
+            -backend-config="key=terraform/${{ env.ENVIRONMENT }}/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
+            -backend-config="encrypt=true"
+
+      - name: Terraform Workspace Select
+        working-directory: check
+        run: terraform workspace select ${{ env.ENVIRONMENT }}
+
+      - name: Terraform Destroy
+        working-directory: check
+        run: |
+          terraform plan -destroy -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" -out=tfplan-destroy
+          terraform apply -auto-approve "tfplan-destroy"
