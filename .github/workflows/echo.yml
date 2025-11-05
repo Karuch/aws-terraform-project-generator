@@ -13,9 +13,7 @@ on:
 jobs:
   fmt:
     name: Test - Terraform Format Check
-    runs-on: self-hosted
-    container:
-      image: hashicorp/terraform:1.13.4
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Terraform Format Check
@@ -24,7 +22,7 @@ jobs:
 
   lint:
     name: Test -Terraform Lint
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
     steps:
@@ -43,9 +41,7 @@ jobs:
 
   plan:
     name: Test - Terraform Plan
-    runs-on: self-hosted
-    container:
-      image: hashicorp/terraform:1.13.4
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -72,9 +68,7 @@ jobs:
 
   checkov:
     name: Test - Security Scan
-    runs-on: self-hosted
-    container:
-      image: hashicorp/terraform:1.13.4
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install Checkov
@@ -100,9 +94,7 @@ jobs:
   apply:
     name: Deploy - Terraform Apply
     needs: [fmt, lint, plan, checkov]
-    runs-on: self-hosted
-    container:
-      image: hashicorp/terraform:1.13.4
+    runs-on: ubuntu-latest
     env:
       AWS_REGION: us-east-1
       AWS_ACCOUNT_ID: "061039770549"
