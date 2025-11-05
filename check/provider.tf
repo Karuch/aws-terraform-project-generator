@@ -7,4 +7,5 @@ provider "aws" {
       ManagedBy   = "Terraform"
     }
   }
+  workspaces { prefix = "checkproject2hey" }
 }
