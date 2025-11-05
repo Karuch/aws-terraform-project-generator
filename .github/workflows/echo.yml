@@ -140,6 +140,7 @@ jobs:
             -backend-config="region=${{ env.AWS_REGION }}" \
             -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
             -backend-config="encrypt=true"
+            -backend-config="workspace_key_prefix=TalFoundSecret"
 
       - name: Terraform Workspace (create or select)
         working-directory: check
