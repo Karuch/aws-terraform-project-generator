@@ -10,7 +10,7 @@ Clone the repo:
 git clone git@github.com:Karuch/aws-terraform-project-generator
 ```
 
-### Generate S3 backend and DynamoDB lock
+### 1. Generate S3 backend and DynamoDB lock
 
 If you don't have s3 bucket (for remote state) and dynamodb table (for locking the state to prevent simutianisly writes) already
 you can use `init_backend` script to creating those:
@@ -20,7 +20,7 @@ Example: ./init_backend/remote_state_init.sh myproject us-east-1
 ```
 If you already have you can use those later.
 
-### Create project template
+### 2. Create project template
 
 Is your project might have different resources across different stages? (e.g prod, dev, staging)
 if yes, please use `--env folders`.
@@ -37,7 +37,7 @@ note that for `terraform workspace` tfstate file will be created under `env:` di
 Example: ./project_init/project_init.sh --workspaces myproject-backend myproject-lock us-east-1 myproject
 ```
 
-### apply manually
+### 3A. apply manually (optional)
 
 #### for `--env-folders` project
 apply dev:
@@ -98,7 +98,7 @@ terraform plan -var-file="vars/prod.tfvars"
 terraform apply -var-file="vars/prod.tfvars"
 ```
 
-### Create identity provider for CI/CD
+### 3B Deploy using CI/CD (recommended over 3A)
 
 Create OIDC provider for github actions if not exist:
 ```
