@@ -37,7 +37,7 @@ note that for `terraform workspace` tfstate file will be created under `env:` di
 Example: ./project_init/project_init.sh --workspaces myproject-backend myproject-lock us-east-1 myproject
 ```
 
-### 3a. apply manually (go to '3b' for recommended CI/CD apply method)
+### 3a. Terraform apply manually
 
 #### for `--env-folders` project
 <details>
@@ -64,6 +64,8 @@ apply prod:
     terraform plan
     terraform apply
 </details>
+
+---
 
 #### for `--workspaces` project
 <details>
@@ -105,86 +107,106 @@ apply prod:
 </details>
 
 
-### 3b. Deploy using CI/CD (recommended over apply manually)
+### 3b. Terraform apply using CI/CD (recommended)
 
+<details>
+<summary>Create OIDC provider if not exist</summary>
 Create OIDC provider for github actions if not exist:
-```
-aws iam create-open-id-connect-provider \
-  --url "https://token.actions.githubusercontent.com" \
-  --client-id-list "sts.amazonaws.com
-```
-create trusted policy for the IAM role of the CI pipeline:
-```
-cat > trust-policy.json <<'EOF'
-{
-  "Version": "2012-10-17",
-  "Statement": [
+
+    aws iam create-open-id-connect-provider \
+      --url "https://token.actions.githubusercontent.com" \
+      --client-id-list "sts.amazonaws.com
+</details>
+
+---
+
+<details>
+<summary>Create IAM policy</summary>
+
+Create a policy file with the required backend permissions  
+(add more actions if your Terraform code deploys other AWS resources).
+
+    cat > terraform-backend-policy.json <<'EOF'
     {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject",
+            "s3:ListBucket"
+          ],
+          "Resource": [
+            "arn:aws:s3:::<S3_BUCKET>",
+            "arn:aws:s3:::<S3_BUCKET>/*"
+          ]
         },
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:<ORG>/<REPO>:ref:refs/heads/<BRANCH>"
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:DeleteItem",
+            "dynamodb:DescribeTable"
+          ],
+          "Resource": "arn:aws:dynamodb:<REGION>:<ACCOUNT_ID>:table/<DDB_LOCK_TABLE>"
         }
-      }
-    }
-  ]
-}
-EOF
-```
-create IAM policy for the IAM role of the CI pipeline.  
-**Make sure to include permissons to deploy the AWS resources in your terraform configurations**:
-```
-cat > terraform-backend-policy.json <<'EOF'
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:DeleteObject",
-        "s3:ListBucket"
-      ],
-      "Resource": [
-        "arn:aws:s3:::<S3_BUCKET>",
-        "arn:aws:s3:::<S3_BUCKET>/*"
       ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:DeleteItem",
-        "dynamodb:DescribeTable"
-      ],
-      "Resource": "arn:aws:dynamodb:<REGION>:<ACCOUNT_ID>:table/<DDB_LOCK_TABLE>"
     }
-  ]
-}
-EOF
-```
-Create IAM role for the CI pipeline:
-```
-aws iam create-role \
-  --role-name <role-name> \
-  --assume-role-policy-document file://trust-policy.json
-```
-Attach the IAM policy to the IAM role:
-```
-aws iam put-role-policy \
-  --role-name <role-name> \
-  --policy-name <policy-name> \
-  --policy-document file://terraform-backend-policy.json
-```
+    EOF
+</details>
+
+---
+
+<details>
+<summary>Create Trust policy for the IAM role</summary>
+
+    cat > trust-policy.json <<'EOF'
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"
+          },
+          "Action": "sts:AssumeRoleWithWebIdentity",
+          "Condition": {
+            "StringEquals": {
+              "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+            },
+            "StringLike": {
+              "token.actions.githubusercontent.com:sub": "repo:<ORG>/<REPO>:ref:refs/heads/<BRANCH>"
+            }
+          }
+        }
+      ]
+    }
+    EOF
+</details>
+
+---
+
+<details>
+<summary>Create IAM role for the CI/CD pipeline</summary>
+
+    aws iam create-role \
+      --role-name <ROLE_NAME> \
+      --assume-role-policy-document file://trust-policy.json
+</details>
+
+---
+
+<details>
+<summary>Attach IAM policy to the role</summary>
+
+    aws iam put-role-policy \
+      --role-name <ROLE_NAME> \
+      --policy-name <POLICY_NAME> \
+      --policy-document file://terraform-backend-policy.json
+</details>
 
 ## Generate subnets easily using the built in VPC module
 
