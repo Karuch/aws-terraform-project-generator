@@ -40,63 +40,70 @@ Example: ./project_init/project_init.sh --workspaces myproject-backend myproject
 ### 3a. apply manually (go to '3b' for recommended CI/CD apply method)
 
 #### for `--env-folders` project
+<details>
+<summary>Preview</summary>
+
 apply dev:
-```
-cd <project_name>/envs/dev
-terraform init
-terraform plan
-terraform apply
-```
+    
+    cd <project_name>/envs/dev
+    terraform init
+    terraform plan
+    terraform apply
+
 apply staging:
-```
-cd <project_name>/envs/staging
-terraform init
-terraform plan
-terraform apply
-```
+    
+    cd <project_name>/envs/staging
+    terraform init
+    terraform plan
+    terraform apply
+
 apply prod:
-```
-cd <project_name>/envs/prod
-terraform init
-terraform plan
-terraform apply
-```
+    
+    cd <project_name>/envs/prod
+    terraform init
+    terraform plan
+    terraform apply
+</details>
 
 #### for `--workspaces` project
-initiallize project
-```
-cd <project_name>
-terraform init
-```
+<details>
+<summary>Preview</summary>
+
+initialize project
+    
+    cd <project_name>
+    terraform init
+
 create workspaces
-```
-terraform workspace new prod
-terraform workspace new staging
-terraform workspace new dev
-```
-the current environment is not tied to shell but to `.terraform`,
-when you use `terraform workspace select` it will change the current workspace
-across all shells.
-**make sure you always using `terraform workspace select` before apply! (CI/CD does this automatically)**
+    
+    terraform workspace new prod
+    terraform workspace new staging
+    terraform workspace new dev
+
+the current environment is not tied to shell but to `.terraform`,  
+when you use `terraform workspace select` it will change the current workspace  
+across all shells.  
+**make sure you always use `terraform workspace select` before apply! (CI/CD does this automatically)**
 
 plan and apply dev:
-```
-terraform workspace select dev
-terraform plan -var-file="vars/dev.tfvars"
-terraform apply -var-file="vars/dev.tfvars"
-```
+    
+    terraform workspace select dev
+    terraform plan -var-file="vars/dev.tfvars"
+    terraform apply -var-file="vars/dev.tfvars"
+
 apply staging:
-```
-terraform workspace select staging
-terraform plan -var-file="vars/staging.tfvars"
-terraform apply -var-file="vars/staging.tfvars"
-```
+    
+    terraform workspace select staging
+    terraform plan -var-file="vars/staging.tfvars"
+    terraform apply -var-file="vars/staging.tfvars"
+
 apply prod:
-```
-terraform workspace select prod
-terraform plan -var-file="vars/prod.tfvars"
-terraform apply -var-file="vars/prod.tfvars"
-```
+    
+    terraform workspace select prod
+    terraform plan -var-file="vars/prod.tfvars"
+    terraform apply -var-file="vars/prod.tfvars"
+</details>
+
 
 ### 3b. Deploy using CI/CD (recommended over apply manually)
 
