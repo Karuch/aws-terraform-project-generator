@@ -108,7 +108,7 @@ jobs:
       AWS_ACCOUNT_ID: "061039770549"
       AWS_ROLE_NAME: terraform-ci-role
       S3_BUCKET: project-generator-test-backend
-      PROJECT: "checkproject"
+      PROJECT: "checkproject2"
       DDB_LOCK_TABLE: project-generator-test-lock
       ENVIRONMENT: ${{ github.ref_name }}
     steps:
@@ -131,12 +131,23 @@ jobs:
         with:
           terraform_version: 1.13.4
 
+      - name: Patch backend to use project name as prefix
+        working-directory: check
+        run: |
+          # Remove any existing workspaces block to avoid duplicates
+          sed -i '/workspaces\s*{/,/}/d' provider.tf
+
+          # Insert a custom workspaces prefix using the PROJECT env var
+          sed -i "/backend\s*\"s3\"\s*{/a\    workspaces { prefix = \"${{ env.PROJECT }}/\" }" provider.tf
+
+          echo "✅ Set Terraform workspace prefix to project name: ${{ env.PROJECT }}"
+
       - name: Terraform Init
         working-directory: check
         run: |
           terraform init -input=false -reconfigure \
             -backend-config="bucket=${{ env.S3_BUCKET }}" \
-            -backend-config="key=${{ env.PROJECT }}/terraform.tfstate" \
+            -backend-config="key=terraform.tfstate" \
             -backend-config="region=${{ env.AWS_REGION }}" \
             -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
             -backend-config="encrypt=true"
