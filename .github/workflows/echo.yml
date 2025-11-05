@@ -99,7 +99,7 @@ jobs:
  
   apply:
     name: Deploy - Terraform Apply
-    # needs: [fmt, lint, plan, checkov]
+    needs: [fmt, lint, plan, checkov]
     runs-on: self-hosted
     container:
       image: hashicorp/terraform:1.13.4
