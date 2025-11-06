@@ -121,6 +121,7 @@ terraform {
     region         = "$REGION_NAME"
     dynamodb_table = "$DYNAMO_TABLE_NAME"
     encrypt        = true
+    workspace_key_prefix = "${PROJECT_NAME}"
   }
 }
 EOF
@@ -136,13 +137,78 @@ EOF
     echo "Updated project name in $TFVARS_FILE"
   fi
 
+  # -------------------------------------------------------------------------
+  # Copy CI/CD workflows (only for workspaces mode)
+  # -------------------------------------------------------------------------
+  WORKFLOWS_SRC="cicd_templates/workspaces"
+  WORKFLOWS_DEST="$DEST_DIR/.github/workflows"
+
+  echo "Setting up GitHub Actions workflows..."
+  mkdir -p "$WORKFLOWS_DEST" || {
+    echo "Error: Failed to create workflows directory." >&2
+    exit 1
+  }
+
+  for FILE in pipeline.yml destroy.yml; do
+    if [ -f "$WORKFLOWS_SRC/$FILE" ]; then
+      cp "$WORKFLOWS_SRC/$FILE" "$WORKFLOWS_DEST/" || {
+        echo "Error: Failed to copy $FILE" >&2
+        exit 1
+      }
+      echo "Copied $FILE → $WORKFLOWS_DEST/"
+    else
+      echo "Warning: $WORKFLOWS_SRC/$FILE not found."
+    fi
+  done
+
+  echo "   GitHub workflows copied to: $WORKFLOWS_DEST"
   echo
-  echo "✅ Project '$PROJECT_NAME' initialized successfully in workspace mode."
-  echo "   Backend and terraform.tfvars updated in: $DEST_DIR/"
+
+  # -------------------------------------------------------------------------
+  # Inject environment variables into pipeline.yml
+  # -------------------------------------------------------------------------
+
+  PIPELINE_FILE="$WORKFLOWS_DEST/pipeline.yml"
+
+  if [ -f "$PIPELINE_FILE" ]; then
+    echo "Updating environment variable values in $PIPELINE_FILE..."
+
+    sed -i "s|^\([[:space:]]*AWS_REGION:\).*|\1 $REGION_NAME|" "$PIPELINE_FILE"
+    sed -i "s|^\([[:space:]]*S3_BUCKET:\).*|\1 $BUCKET_NAME|" "$PIPELINE_FILE"
+    sed -i "s|^\([[:space:]]*DDB_LOCK_TABLE:\).*|\1 $DYNAMO_TABLE_NAME|" "$PIPELINE_FILE"
+    sed -i "s|^\([[:space:]]*PROJECT:\).*|\1 $PROJECT_NAME|" "$PIPELINE_FILE"
+
+    echo "✅ Environment values replaced successfully."
+  else
+    echo "⚠️  pipeline.yml not found — skipping env replacement."
+  fi
+  
+  # -------------------------------------------------------------------------
+  # Inject environment variables into pipeline.yml
+  # -------------------------------------------------------------------------
+
+  DESTROY_FILE="$WORKFLOWS_DEST/destroy.yml"
+
+  if [ -f "$DESTROY_FILE" ]; then
+    echo "Updating environment variable values in $DESTROY_FILE..."
+
+    sed -i "s|^\([[:space:]]*AWS_REGION:\).*|\1 $REGION_NAME|" "$DESTROY_FILE"
+    sed -i "s|^\([[:space:]]*S3_BUCKET:\).*|\1 $BUCKET_NAME|" "$DESTROY_FILE"
+    sed -i "s|^\([[:space:]]*DDB_LOCK_TABLE:\).*|\1 $DYNAMO_TABLE_NAME|" "$DESTROY_FILE"
+    sed -i "s|^\([[:space:]]*PROJECT:\).*|\1 $PROJECT_NAME|" "$DESTROY_FILE"
+
+    echo "✅ Environment values replaced successfully in destroy.yml."
+  else
+    echo "⚠️  destroy.yml not found — skipping env replacement."
+  fi
 
 # ---------------------------------------------------------------------------
 # Invalid mode
 # ---------------------------------------------------------------------------
+
+echo "✅ Project '$PROJECT_NAME' initialized successfully in workspace mode."
+echo "   Backend and terraform.tfvars updated in: $DEST_DIR/"
+
 else
   echo "Error: Unknown mode '$MODE'. Use --env-folders or --workspaces." >&2
   exit 1
