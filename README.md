@@ -19,8 +19,8 @@ if yes, please use `--env-folders`:
   --dynamodb-table lock-table-name \
   --region us-east-1 \
   --project myproject \
-  --account-id 1234567890 \ # optional
-  --cicd-role terraform-apply-role # optional
+  --account-id 1234567890 \ # optional (needed for CICD)
+  --cicd-role terraform-apply-role # optional (needed for CICD)
 ```
 If your project will have the same resources across all stages (e.g prod, dev, staging) and the only  
 difference is the values you will use in the variables in each environement, please use `--workspacs`:
@@ -31,8 +31,8 @@ difference is the values you will use in the variables in each environement, ple
   --dynamodb-table lock-table-name \
   --region us-east-1 \
   --project myproject \
-  --account-id 1234567890 \ # optional
-  --cicd-role terraform-apply-role # optional
+  --account-id 1234567890 \ # optional (needed for CICD)
+  --cicd-role terraform-apply-role # optional (needed for CICD)
 ```
 3. cd to the newly created project directory `cd <project-name>`.
 3. create a git repository for the project
