@@ -11,7 +11,7 @@ git clone git@github.com:Karuch/aws-terraform-project-generator
 ```
 2. generate project template:  
 Is your project might have different resources across different stages? (e.g prod, dev, staging)  
-if yes, please use `--env folders`:
+if yes, please use `--env-folders`:
 ```
 ./project_init/project_init.sh \
   --env-folders \
