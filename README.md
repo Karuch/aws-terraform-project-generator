@@ -9,7 +9,7 @@ it currently support two structure methodology: `env folders` and `workspaces`.
 ```bash
 git clone git@github.com:Karuch/aws-terraform-project-generator
 ```
-2. generate project template:
+2. generate project template:  
 Is your project might have different resources across different stages? (e.g prod, dev, staging)  
 if yes, please use `--env folders`:
 ```
