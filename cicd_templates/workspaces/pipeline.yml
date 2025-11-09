@@ -6,9 +6,7 @@ permissions:
 
 on:
   push:
-    branches: [ "cicd" ]
-
-# Tal — remember: OIDC later, no static creds!
+    branches: [ "main", "dev", "staging"]
 
 jobs:
   fmt:
