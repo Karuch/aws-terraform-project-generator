@@ -24,7 +24,8 @@ jobs:
       AWS_ROLE_NAME: ""
       S3_BUCKET: ""
       DDB_LOCK_TABLE: ""
-      ENVIRONMENT: ${{ github.event.inputs.environment }}
+      # if branch == main → prod, otherwise use branch name
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
       PROJECT: ""
     steps:
       - uses: actions/checkout@v4

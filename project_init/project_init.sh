@@ -6,11 +6,11 @@
 #   --workspaces  : single-folder workspace-style project
 #
 # Usage:
-#   ./project_init.sh [--env-folders|--workspaces] <bucket> <table> <region> <project>
+#   ./project_init.sh [--env-folders|--workspaces] --bucket <bucket> --table <table> --region <region> --project <project>
 #
 # Example:
-#   ./project_init.sh --env-folders my-bucket my-lock il-central-1 myproj
-#   ./project_init.sh --workspaces  my-bucket my-lock il-central-1 myproj
+#   ./project_init.sh --env-folders --bucket my-bucket --table my-lock --region il-central-1 --project myproj
+#   ./project_init.sh --workspaces  --bucket my-bucket --table my-lock --region il-central-1 --project myproj
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -23,19 +23,65 @@ else
   MODE="--env-folders"  # default
 fi
 
-if [ "$#" -ne 4 ]; then
+# ---------------------------------------------------------------------------
+# Parse named arguments instead of positional ones
+# ---------------------------------------------------------------------------
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --bucket)
+      BUCKET_NAME="$2"
+      shift 2
+      ;;
+    --dynamodb-table)
+      DYNAMO_TABLE_NAME="$2"
+      shift 2
+      ;;
+    --region)
+      REGION_NAME="$2"
+      shift 2
+      ;;
+    --project)
+      PROJECT_NAME="$2"
+      shift 2
+      ;;
+    --account-id)
+      AWS_ACCOUNT_ID="$2"
+      shift 2
+      ;;
+    --cicd-role)
+      AWS_ROLE_NAME="$2"
+      shift 2
+      ;;
+    -*)
+      echo "Error: Unknown option: $1" >&2
+      exit 1
+      ;;
+    *)
+      echo "Error: Unexpected argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# ---------------------------------------------------------------------------
+# Validate required args
+# ---------------------------------------------------------------------------
+if [ -z "$BUCKET_NAME" ] || [ -z "$DYNAMO_TABLE_NAME" ] || [ -z "$REGION_NAME" ] || [ -z "$PROJECT_NAME" ]; then
   echo "Usage:"
-  echo "  $0 [--env-folders|--workspaces] <backend_bucket_name> <lock_dynamodb_table> <region> <project>"
-  echo "Example:"
-  echo "  $0 --env-folders mybucket mylock il-central-1 myproject"
-  echo "  $0 --workspaces  mybucket mylock il-central-1 myproject"
+  echo "  $0 [--env-folders|--workspaces] --bucket <bucket> --table <table> --region <region> --project <project> [--account-id <id>] [--ci-role-name <role>]"
   exit 1
 fi
 
-BUCKET_NAME=$1
-DYNAMO_TABLE_NAME=$2
-REGION_NAME=$3
-PROJECT_NAME=$4
+# ---------------------------------------------------------------------------
+# Warn if optional args missing
+# ---------------------------------------------------------------------------
+if [ -z "$AWS_ACCOUNT_ID" ]; then
+  echo "⚠️  Warning: --account-id not provided. Some CI/CD templates may not have AWS account info replaced."
+fi
+
+if [ -z "$AWS_ROLE_NAME" ]; then
+  echo "⚠️  Warning: --cicd-role not provided. CICD may lack AWS role configuration for terraform apply."
+fi
 
 # ---------------------------------------------------------------------------
 # Validate project name
@@ -167,13 +213,14 @@ EOF
   # -------------------------------------------------------------------------
   # Inject environment variables into pipeline.yml
   # -------------------------------------------------------------------------
-
   PIPELINE_FILE="$WORKFLOWS_DEST/pipeline.yml"
 
   if [ -f "$PIPELINE_FILE" ]; then
     echo "Updating environment variable values in $PIPELINE_FILE..."
 
     sed -i "s|^\([[:space:]]*AWS_REGION:\).*|\1 $REGION_NAME|" "$PIPELINE_FILE"
+    sed -i "s|^\([[:space:]]*AWS_ACCOUNT_ID:\).*|\1 $AWS_ACCOUNT_ID|" "$PIPELINE_FILE"
+    sed -i "s|^\([[:space:]]*AWS_ROLE_NAME:\).*|\1 $AWS_ROLE_NAME|" "$PIPELINE_FILE"
     sed -i "s|^\([[:space:]]*S3_BUCKET:\).*|\1 $BUCKET_NAME|" "$PIPELINE_FILE"
     sed -i "s|^\([[:space:]]*DDB_LOCK_TABLE:\).*|\1 $DYNAMO_TABLE_NAME|" "$PIPELINE_FILE"
     sed -i "s|^\([[:space:]]*PROJECT:\).*|\1 $PROJECT_NAME|" "$PIPELINE_FILE"
@@ -184,15 +231,16 @@ EOF
   fi
   
   # -------------------------------------------------------------------------
-  # Inject environment variables into pipeline.yml
+  # Inject environment variables into destroy.yml
   # -------------------------------------------------------------------------
-
   DESTROY_FILE="$WORKFLOWS_DEST/destroy.yml"
 
   if [ -f "$DESTROY_FILE" ]; then
     echo "Updating environment variable values in $DESTROY_FILE..."
 
     sed -i "s|^\([[:space:]]*AWS_REGION:\).*|\1 $REGION_NAME|" "$DESTROY_FILE"
+    sed -i "s|^\([[:space:]]*AWS_ACCOUNT_ID:\).*|\1 $AWS_ACCOUNT_ID|" "$DESTROY_FILE"
+    sed -i "s|^\([[:space:]]*AWS_ROLE_NAME:\).*|\1 $AWS_ROLE_NAME|" "$DESTROY_FILE"
     sed -i "s|^\([[:space:]]*S3_BUCKET:\).*|\1 $BUCKET_NAME|" "$DESTROY_FILE"
     sed -i "s|^\([[:space:]]*DDB_LOCK_TABLE:\).*|\1 $DYNAMO_TABLE_NAME|" "$DESTROY_FILE"
     sed -i "s|^\([[:space:]]*PROJECT:\).*|\1 $PROJECT_NAME|" "$DESTROY_FILE"
@@ -213,4 +261,3 @@ else
   echo "Error: Unknown mode '$MODE'. Use --env-folders or --workspaces." >&2
   exit 1
 fi
-
