@@ -23,18 +23,28 @@ If you already have you can use those later.
 ### 2. Create project template
 
 Is your project might have different resources across different stages? (e.g prod, dev, staging)
-if yes, please use `--env folders`.
+if yes, please use `--env folders`:
 ```
-./project_init/project_init.sh
-Example: ./project_init/project_init.sh --env-folders myproject-backend myproject-lock us-east-1 myproject
+./project_init/project_init.sh \
+  --env-folders \
+  --bucket backend-bucket-name \
+  --dynamodb-table lock-table-name \
+  --region us-east-1 \
+  --project myproject \
+  --account-id 1234567890 \ # optional
+  --cicd-role terraform-apply-role # optional
 ```
-
 If your project will have the same resources across all stages (e.g prod, dev, staging) and the only  
-difference is the values you will use in the variables in each environement, please use `--workspacs`  
-note that for `terraform workspace` tfstate file will be created under `env:` directory in the remote state S3 bucket.
+difference is the values you will use in the variables in each environement, please use `--workspacs`:
 ```
-./project_init/project_init.sh
-Example: ./project_init/project_init.sh --workspaces myproject-backend myproject-lock us-east-1 myproject
+./project_init/project_init.sh \
+  --workspaces \
+  --bucket backend-bucket-name \
+  --dynamodb-table lock-table-name \
+  --region us-east-1 \
+  --project myproject \
+  --account-id 1234567890 \ # optional
+  --cicd-role terraform-apply-role # optional
 ```
 
 ### 3a. Terraform apply manually

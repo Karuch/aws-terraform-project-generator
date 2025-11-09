@@ -223,7 +223,7 @@ EOF
     sed -i "s|^\([[:space:]]*AWS_ROLE_NAME:\).*|\1 $AWS_ROLE_NAME|" "$PIPELINE_FILE"
     sed -i "s|^\([[:space:]]*S3_BUCKET:\).*|\1 $BUCKET_NAME|" "$PIPELINE_FILE"
     sed -i "s|^\([[:space:]]*DDB_LOCK_TABLE:\).*|\1 $DYNAMO_TABLE_NAME|" "$PIPELINE_FILE"
-    sed -i "s|^\([[:space:]]*PROJECT:\).*|\1 $PROJECT_NAME|" "$PIPELINE_FILE"
+    sed -i "s|^\([[:space:]]*PROJECT_NAME:\).*|\1 $PROJECT_NAME|" "$PIPELINE_FILE"
 
     echo "✅ Environment values replaced successfully."
   else
@@ -243,7 +243,7 @@ EOF
     sed -i "s|^\([[:space:]]*AWS_ROLE_NAME:\).*|\1 $AWS_ROLE_NAME|" "$DESTROY_FILE"
     sed -i "s|^\([[:space:]]*S3_BUCKET:\).*|\1 $BUCKET_NAME|" "$DESTROY_FILE"
     sed -i "s|^\([[:space:]]*DDB_LOCK_TABLE:\).*|\1 $DYNAMO_TABLE_NAME|" "$DESTROY_FILE"
-    sed -i "s|^\([[:space:]]*PROJECT:\).*|\1 $PROJECT_NAME|" "$DESTROY_FILE"
+    sed -i "s|^\([[:space:]]*PROJECT_NAME:\).*|\1 $PROJECT_NAME|" "$DESTROY_FILE"
 
     echo "✅ Environment values replaced successfully in destroy.yml."
   else

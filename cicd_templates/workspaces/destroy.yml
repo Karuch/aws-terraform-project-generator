@@ -15,7 +15,7 @@ on:
 jobs:
   destroy:
     name: Destroy - Terraform
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
     env:
@@ -26,7 +26,7 @@ jobs:
       DDB_LOCK_TABLE: ""
       # if branch == main → prod, otherwise use branch name
       ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-      PROJECT: ""
+      PROJECT_NAME: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -47,7 +47,6 @@ jobs:
           terraform_version: 1.13.4
 
       - name: Terraform Init
-        working-directory: check
         run: |
           terraform init -input=false -reconfigure \
             -backend-config="bucket=${{ env.S3_BUCKET }}" \
@@ -55,15 +54,13 @@ jobs:
             -backend-config="region=${{ env.AWS_REGION }}" \
             -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
             -backend-config="encrypt=true" \
-            -backend-config="workspace_key_prefix=${{ env.PROJECT }}"
+            -backend-config="workspace_key_prefix=${{ env.PROJECT_NAME }}"
 
       - name: Terraform Workspace (create or select)
-        working-directory: check
         run: |
           terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
 
       - name: Terraform Destroy
-        working-directory: check
         run: |
           terraform plan -destroy -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" -out=tfplan-destroy
           terraform apply -auto-approve "tfplan-destroy"
