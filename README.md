@@ -5,24 +5,12 @@ it currently support two structure methodology: `env folders` and `workspaces`.
 
 ## Getting Started
 
-Clone the repo:
+1. Clone the generator repo:
 ```bash
 git clone git@github.com:Karuch/aws-terraform-project-generator
 ```
-
-### 1. Generate S3 backend and DynamoDB lock
-
-If you don't have s3 bucket (for remote state) and dynamodb table (for locking the state to prevent simutianisly writes) already
-you can use `init_backend` script to creating those:
-```
-./init_backend/remote_state_init.sh <prefix> <region>
-Example: ./init_backend/remote_state_init.sh myproject us-east-1
-```
-If you already have you can use those later.
-
-### 2. Create project template
-
-Is your project might have different resources across different stages? (e.g prod, dev, staging)
+2. generate project template:
+Is your project might have different resources across different stages? (e.g prod, dev, staging)  
 if yes, please use `--env folders`:
 ```
 ./project_init/project_init.sh \
@@ -46,8 +34,28 @@ difference is the values you will use in the variables in each environement, ple
   --account-id 1234567890 \ # optional
   --cicd-role terraform-apply-role # optional
 ```
+3. cd to the newly created project directory `cd <project-name>`.
+3. create a git repository for the project
+4. set the newly created project repo as the origin:
+```
+git remote set-url origin <project_repostiroy>.git
+```
+5. push the template to git (to `main/dev/staging` branches):
+```
+git push origin dev
+```
 
-### 3a. Terraform apply manually
+### Generate S3 backend and DynamoDB lock using `backend_init.sh`
+
+If you don't have s3 bucket (for remote state) and dynamodb table (for locking the state to prevent simutianisly writes) already
+you can use `backend_init.sh` script to creating those:
+```
+./init_backend/remote_state_init.sh <prefix> <region>
+Example: ./init_backend/remote_state_init.sh myproject us-east-1
+```
+If you already have you can use those later.
+
+### Terraform apply manually
 
 #### for `--env-folders` project
 <details>
@@ -116,8 +124,7 @@ apply prod:
     terraform apply -var-file="vars/prod.tfvars"
 </details>
 
-
-### 3b. Terraform apply using CI/CD (recommended)
+### Terraform apply using CI/CD (recommended)
 
 <details>
 <summary>Create OIDC provider if not exist</summary>
