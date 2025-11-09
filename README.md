@@ -35,12 +35,12 @@ difference is the values you will use in the variables in each environement, ple
   --cicd-role terraform-apply-role # optional (needed for CICD)
 ```
 3. cd to the newly created project directory `cd <project-name>`.
-3. create a git repository for the project
-4. set the newly created project repo as the origin:
+4. create a git repository for the project
+5. set the newly created project repo as the origin:
 ```
 git remote set-url origin <project_repostiroy>.git
 ```
-5. push the template to git (to `main/dev/staging` branches):
+6. push the template to git (to `main/dev/staging` branches):
 ```
 git push origin dev
 ```
