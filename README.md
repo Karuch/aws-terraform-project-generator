@@ -13,26 +13,34 @@ git clone git@github.com:Karuch/aws-terraform-project-generator
 Is your project might have different resources across different stages? (e.g prod, dev, staging)  
 if yes, please use `--env-folders`:
 ```
+# Optional notes:
+# --account-id     and --ci-role-name are only needed if you plan to use GitHub Actions (OIDC-based CI/CD)
+
 ./project_init/project_init.sh \
   --env-folders \
-  --bucket backend-bucket-name \
-  --dynamodb-table lock-table-name \
-  --region us-east-1 \
-  --project myproject \
-  --account-id 1234567890 \ # optional (needed for CICD)
-  --cicd-role terraform-apply-role # optional (needed for CICD)
+  --bucket          <backend-bucket-name> \
+  --table           <dynamodb-lock-table-name> \
+  --region          <aws-region> \
+  --project         <project-name> \
+  --account-id      <aws-account-id> \
+  --ci-role-name    <cicd-role-name>
+
 ```
 If your project will have the same resources across all stages (e.g prod, dev, staging) and the only  
 difference is the values you will use in the variables in each environement, please use `--workspacs`:
 ```
+# Optional notes:
+# --account-id     and --ci-role-name are only needed if you plan to use GitHub Actions (OIDC-based CI/CD)
+
 ./project_init/project_init.sh \
   --workspaces \
-  --bucket backend-bucket-name \
-  --dynamodb-table lock-table-name \
-  --region us-east-1 \
-  --project myproject \
-  --account-id 1234567890 \ # optional (needed for CICD)
-  --cicd-role terraform-apply-role # optional (needed for CICD)
+  --bucket          <backend-bucket-name> \
+  --table           <dynamodb-lock-table-name> \
+  --region          <aws-region> \
+  --project         <project-name> \
+  --account-id      <aws-account-id> \
+  --ci-role-name    <cicd-role-name>
+
 ```
 3. cd to the newly created project directory `cd <project-name>`.
 4. create a git repository for the project
@@ -126,6 +134,7 @@ apply prod:
 
 ### Terraform apply using CI/CD (recommended)
 
+note that CI/CD will run automatically each time you commit something to `dev/main/staging`.
 <details>
 <summary>Create OIDC provider if not exist</summary>
 Create OIDC provider for github actions if not exist:
