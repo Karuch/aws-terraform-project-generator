@@ -13,34 +13,26 @@ git clone git@github.com:Karuch/aws-terraform-project-generator
 Is your project might have different resources across different stages? (e.g prod, dev, staging)  
 if yes, please use `--env-folders`:
 ```
-# Optional notes:
-# --account-id     and --ci-role-name are only needed if you plan to use GitHub Actions (OIDC-based CI/CD)
-
 ./project_init/project_init.sh \
   --env-folders \
-  --bucket          <backend-bucket-name> \
-  --table           <dynamodb-lock-table-name> \
-  --region          <aws-region> \
-  --project         <project-name> \
-  --account-id      <aws-account-id> \
-  --cicd-role       <cicd-role-name>
-
+  --bucket backend-bucket-name \
+  --dynamodb-table lock-table-name \
+  --region us-east-1 \
+  --project myproject \
+  --account-id 012345678910 \  # optional (needed for CICD)
+  --cicd-role terraform-apply-role  # optional (needed for CICD)
 ```
 If your project will have the same resources across all stages (e.g prod, dev, staging) and the only  
 difference is the values you will use in the variables in each environement, please use `--workspacs`:
 ```
-# Optional notes:
-# --account-id     and --ci-role-name are only needed if you plan to use GitHub Actions (OIDC-based CI/CD)
-
 ./project_init/project_init.sh \
   --workspaces \
-  --bucket          <backend-bucket-name> \
-  --table           <dynamodb-lock-table-name> \
-  --region          <aws-region> \
-  --project         <project-name> \
-  --account-id      <aws-account-id> \
-  --cicd-role       <cicd-role-name>
-
+  --bucket backend-bucket-name \
+  --dynamodb-table lock-table-name \
+  --region us-east-1 \
+  --project myproject \
+  --account-id 012345678910 \  # optional (needed for CICD)
+  --cicd-role terraform-apply-role  # optional (needed for CICD)
 ```
 3. cd to the newly created project directory `cd <project-name>`.
 4. create a git repository for the project
@@ -50,6 +42,7 @@ git remote set-url origin <project_repostiroy>.git
 ```
 6. push the template to git (to `main/dev/staging` branches):
 ```
+git checkout dev
 git push origin dev
 ```
 
