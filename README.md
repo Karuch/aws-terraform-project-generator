@@ -45,7 +45,7 @@ cd ./<project-name>
 5. set the newly created project repo as the origin:
 ```
 git init -b dev
-git remote set-url origin <project_repostiroy>.git
+git remote add origin <project-repository>.git
 git commit -m "Initial commit"
 ```
 6. push the template to git (to `main/dev/staging` branches):
