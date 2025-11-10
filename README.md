@@ -42,7 +42,7 @@ difference is the values you will use in the variables in each environement, ple
 cd ./<project-name>
 ```
 4. create a git repository for the project
-5. set the newly created project repo as the origin:
+5. set the newly created project repo as the origin and commit:
 ```
 git init -b dev
 git remote add origin <project-repository>.git
