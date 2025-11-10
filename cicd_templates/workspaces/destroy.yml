@@ -25,7 +25,7 @@ jobs:
       S3_BUCKET: ""
       DDB_LOCK_TABLE: ""
       # if branch == main → prod, otherwise use branch name
-      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+      ENVIRONMENT: ${{ github.event.inputs.environment == 'main' && 'prod' || github.event.inputs.environment }}
       PROJECT_NAME: ""
     steps:
       - uses: actions/checkout@v4
