@@ -162,11 +162,11 @@ elif [ "$MODE" = "--workspaces" ]; then
   cat <<EOF > "$BACKEND_FILE"
 terraform {
   backend "s3" {
-    bucket         = "$BUCKET_NAME"
-    key            = "${PROJECT_NAME}/terraform.tfstate"
-    region         = "$REGION_NAME"
-    dynamodb_table = "$DYNAMO_TABLE_NAME"
-    encrypt        = true
+    bucket               = "$BUCKET_NAME"
+    key                  = "${PROJECT_NAME}/terraform.tfstate"
+    region               = "$REGION_NAME"
+    dynamodb_table       = "$DYNAMO_TABLE_NAME"
+    encrypt              = true
     workspace_key_prefix = "${PROJECT_NAME}"
   }
 }
@@ -176,9 +176,9 @@ EOF
   TFVARS_FILE="$DEST_DIR/terraform.tfvars"
   if [ -f "$TFVARS_FILE" ]; then
     if sed --version >/dev/null 2>&1; then
-      sed -i "s/^project[[:space:]]*=.*/project               = \"${PROJECT_NAME}\"/" "$TFVARS_FILE"
+      sed -i "s/^project[[:space:]]*=.*/project = \"${PROJECT_NAME}\"/" "$TFVARS_FILE"
     else
-      sed -i '' "s/^project[[:space:]]*=.*/project               = \"${PROJECT_NAME}\"/" "$TFVARS_FILE"
+      sed -i '' "s/^project[[:space:]]*=.*/project = \"${PROJECT_NAME}\"/" "$TFVARS_FILE"
     fi
     echo "Updated project name in $TFVARS_FILE"
   fi

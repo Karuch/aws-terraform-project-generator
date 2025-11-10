@@ -46,7 +46,8 @@ cd ./<project-name>
 ```
 git init -b dev
 git remote add origin <project-repository>.git
-git commit -am "Initial commit"
+git add .
+git commit -m "Initial commit"
 ```
 6. push the template to git (to `main/dev/staging` branches):
 ```
