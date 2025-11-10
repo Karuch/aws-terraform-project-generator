@@ -219,7 +219,7 @@ EOF
     echo "Updating environment variable values in $PIPELINE_FILE..."
 
     sed -i "s|^\([[:space:]]*AWS_REGION:\).*|\1 $REGION_NAME|" "$PIPELINE_FILE"
-    sed -i "s|^\([[:space:]]*AWS_ACCOUNT_ID:\).*|\1 $AWS_ACCOUNT_ID|" "$PIPELINE_FILE"
+    sed -i "s|^\([[:space:]]*AWS_ACCOUNT_ID:\).*|\1 \"$AWS_ACCOUNT_ID\"|" "$PIPELINE_FILE"
     sed -i "s|^\([[:space:]]*AWS_ROLE_NAME:\).*|\1 $AWS_ROLE_NAME|" "$PIPELINE_FILE"
     sed -i "s|^\([[:space:]]*S3_BUCKET:\).*|\1 $BUCKET_NAME|" "$PIPELINE_FILE"
     sed -i "s|^\([[:space:]]*DDB_LOCK_TABLE:\).*|\1 $DYNAMO_TABLE_NAME|" "$PIPELINE_FILE"
@@ -239,7 +239,7 @@ EOF
     echo "Updating environment variable values in $DESTROY_FILE..."
 
     sed -i "s|^\([[:space:]]*AWS_REGION:\).*|\1 $REGION_NAME|" "$DESTROY_FILE"
-    sed -i "s|^\([[:space:]]*AWS_ACCOUNT_ID:\).*|\1 $AWS_ACCOUNT_ID|" "$DESTROY_FILE"
+    sed -i "s|^\([[:space:]]*AWS_ACCOUNT_ID:\).*|\1 \"$AWS_ACCOUNT_ID\"|" "$DESTROY_FILE"
     sed -i "s|^\([[:space:]]*AWS_ROLE_NAME:\).*|\1 $AWS_ROLE_NAME|" "$DESTROY_FILE"
     sed -i "s|^\([[:space:]]*S3_BUCKET:\).*|\1 $BUCKET_NAME|" "$DESTROY_FILE"
     sed -i "s|^\([[:space:]]*DDB_LOCK_TABLE:\).*|\1 $DYNAMO_TABLE_NAME|" "$DESTROY_FILE"
