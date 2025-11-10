@@ -9,6 +9,9 @@ it currently support two structure methodology: `env folders` and `workspaces`.
 ```bash
 git clone git@github.com:Karuch/aws-terraform-project-generator
 ```
+```
+cd aws-terraform-project-generator
+```
 2. generate project template:  
 Is your project might have different resources across different stages? (e.g prod, dev, staging)  
 if yes, please use `--env-folders`:
@@ -34,7 +37,10 @@ difference is the values you will use in the variables in each environement, ple
   --account-id 012345678910 \  # optional (needed for CICD)
   --cicd-role terraform-apply-role  # optional (needed for CICD)
 ```
-3. cd to the newly created project directory `cd <project-name>`.
+3. cd to the newly created project directory.
+```
+cd ./<project-name>
+```
 4. create a git repository for the project
 5. set the newly created project repo as the origin:
 ```
