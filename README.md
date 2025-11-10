@@ -14,26 +14,28 @@ cd aws-terraform-project-generator
 Is your project might have different resources across different stages? (e.g prod, dev, staging)  
 if yes, please use `--env-folders`:
 ```
+# --acount-id and --cicd-role are optional and needed for CICD
 ./project_init/project_init.sh \
   --env-folders \
   --bucket backend-bucket-name \
   --dynamodb-table lock-table-name \
   --region us-east-1 \
   --project myproject \
-  --account-id 012345678910 \  # optional (needed for CICD)
-  --cicd-role terraform-apply-role  # optional (needed for CICD)
+  --account-id 012345678910 \
+  --cicd-role terraform-apply-role
 ```
 If your project will have the same resources across all stages (e.g prod, dev, staging) and the only  
 difference is the values you will use in the variables in each environement, please use `--workspacs`:
 ```
+# --acount-id and --cicd-role are optional and needed for CICD
 ./project_init/project_init.sh \
   --workspaces \
   --bucket backend-bucket-name \
   --dynamodb-table lock-table-name \
   --region us-east-1 \
   --project myproject \
-  --account-id 012345678910 \  # optional (needed for CICD)
-  --cicd-role terraform-apply-role  # optional (needed for CICD)
+  --account-id 012345678910 \
+  --cicd-role terraform-apply-role
 ```
 3. cd to the newly created project directory.
 ```
@@ -42,12 +44,13 @@ cd ./<project-name>
 4. create a git repository for the project
 5. set the newly created project repo as the origin:
 ```
+git init -b dev
 git remote set-url origin <project_repostiroy>.git
+git commit -m "Initial commit"
 ```
 6. push the template to git (to `main/dev/staging` branches):
 ```
-git checkout dev
-git push origin dev
+git push -u origin dev
 ```
 
 ### Generate S3 backend and DynamoDB lock using `backend_init.sh`
