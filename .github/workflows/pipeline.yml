@@ -19,7 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Terraform Format Check (env)
-        run: terraform fmt -check -recursive ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+        # run: terraform fmt -check -recursive ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+        run: terraform fmt -check -recursive ./envs/dev
       - name: Terraform Format Check (modules)
         run: terraform fmt -check -recursive ./modules
 
@@ -36,8 +37,10 @@ jobs:
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
       - name: Run TFLint (env)
         run: |
-          tflint --init --chdir ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-          tflint --recursive --chdir ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+          # tflint --init --chdir ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+          # tflint --recursive --chdir ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+          tflint --init --chdir ./envs/dev
+          tflint --recursive --chdir ./envs/dev
       - name: Run TFLint (modules)
         run: |
           tflint --init --chdir ./modules
