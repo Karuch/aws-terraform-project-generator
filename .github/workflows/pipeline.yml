@@ -18,6 +18,8 @@ jobs:
       image: hashicorp/terraform:1.13.4
     steps:
       - uses: actions/checkout@v4
+      - name: ls
+        run: ls; pwd
       - name: Terraform Format Check (env)
         # run: terraform fmt -check -recursive ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
         run: terraform fmt -check -recursive ./envs/dev
