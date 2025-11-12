@@ -46,7 +46,7 @@ jobs:
           terraform_version: 1.13.4
 
       - name: Terraform Init
-        working-directory: check
+        working-directory: check/envs/dev
         run: |
           terraform init -input=false -reconfigure \
             -backend-config="bucket=${{ env.S3_BUCKET }}" \
@@ -56,13 +56,8 @@ jobs:
             -backend-config="encrypt=true" \
             -backend-config="workspace_key_prefix=${{ env.PROJECT }}"
 
-      - name: Terraform Workspace (create or select)
-        working-directory: check
-        run: |
-          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
-
       - name: Terraform Destroy
-        working-directory: check
+        working-directory: check/envs/dev
         run: |
-          terraform plan -destroy -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" -out=tfplan-destroy
+          terraform plan -destroy -out=tfplan-destroy
           terraform apply -auto-approve "tfplan-destroy"

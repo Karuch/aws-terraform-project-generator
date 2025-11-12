@@ -97,6 +97,7 @@ jobs:
           pip install --break-system-packages checkov
 
       - name: Run Checkov Scan
+        working-directory: check
         run: |
           checkov -d ./envs/dev --framework terraform --compact --quiet || true
           checkov -d ./modules --framework terraform --compact --quiet || true
