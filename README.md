@@ -14,7 +14,7 @@ cd aws-terraform-project-generator
 Is your project might have different resources across different stages? (e.g prod, dev, staging)  
 if yes, please use `--env-folders`:
 ```
-# --acount-id and --cicd-role are optional and needed for CICD
+# --account-id and --cicd-role are optional and needed for CICD
 ./project_init/project_init.sh \
   --env-folders \
   --bucket backend-bucket-name \
@@ -27,7 +27,7 @@ if yes, please use `--env-folders`:
 If your project will have the same resources across all stages (e.g prod, dev, staging) and the only  
 difference is the values you will use in the variables in each environement, please use `--workspacs`:
 ```
-# --acount-id and --cicd-role are optional and needed for CICD
+# --account-id and --cicd-role are optional and needed for CICD
 ./project_init/project_init.sh \
   --workspaces \
   --bucket backend-bucket-name \

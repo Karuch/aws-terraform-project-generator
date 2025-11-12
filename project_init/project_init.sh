@@ -6,11 +6,11 @@
 #   --workspaces  : single-folder workspace-style project
 #
 # Usage:
-#   ./project_init.sh [--env-folders|--workspaces] --bucket <bucket> --table <table> --region <region> --project <project>
+#   ./project_init.sh [--env-folders|--workspaces] --bucket <bucket> --dynamodb-table <table> --region <region> --project <project>
 #
 # Example:
-#   ./project_init.sh --env-folders --bucket my-bucket --table my-lock --region il-central-1 --project myproj
-#   ./project_init.sh --workspaces  --bucket my-bucket --table my-lock --region il-central-1 --project myproj
+#   ./project_init.sh --env-folders --bucket my-bucket --dynamodb-table my-lock --region il-central-1 --project myproj
+#   ./project_init.sh --workspaces  --bucket my-bucket --dynamodb-table my-lock --region il-central-1 --project myproj
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
@@ -129,9 +129,9 @@ EOF
     TFVARS_FILE="$ENV_PATH/terraform.tfvars"
     if [ -f "$TFVARS_FILE" ]; then
       if sed --version >/dev/null 2>&1; then
-        sed -i "s/^project[[:space:]]*=.*/project               = \"${PROJECT_NAME}\"/" "$TFVARS_FILE"
+        sed -i "s/^\([[:space:]]*project\)[[:space:]]*=.*/\1              = \"${PROJECT_NAME}\"/" "$TFVARS_FILE"
       else
-        sed -i '' "s/^project[[:space:]]*=.*/project               = \"${PROJECT_NAME}\"/" "$TFVARS_FILE"
+        sed -i '' "s/^\([[:space:]]*project\)[[:space:]]*=.*/\1              = \"${PROJECT_NAME}\"/" "$TFVARS_FILE"
       fi
       echo "Updated project name in $TFVARS_FILE"
     fi
