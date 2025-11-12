@@ -40,15 +40,15 @@ jobs:
       - name: Run TFLint (env)
         working-directory: check
         run: |
-          # tflint --init --chdir --config="$(pwd)/.tflint.hcl" ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-          # tflint --recursive --chdir --config="$(pwd)/.tflint.hcl" ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-          tflint --init --chdir --config="$(pwd)/.tflint.hcl" ./envs/dev
-          tflint --recursive --chdir --config="$(pwd)/.tflint.hcl" ./envs/dev
+          # tflint --init --chdir=./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }} --config="$(pwd)/.tflint.hcl"
+          # tflint --recursive --chdir=./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }} --config="$(pwd)/.tflint.hcl"
+          tflint --init --chdir=./envs/dev --config="$(pwd)/.tflint.hcl"
+          tflint --recursive --chdir=./envs/dev --config="$(pwd)/.tflint.hcl"
       - name: Run TFLint (modules)
         working-directory: check
         run: |
-          tflint --init --chdir --config="$(pwd)/.tflint.hcl" ./modules 
-          tflint --recursive --chdir --config="$(pwd)/.tflint.hcl" ./modules
+          tflint --init --chdir=./modules  --config="$(pwd)/.tflint.hcl"
+          tflint --recursive --chdir=./modules  --config="$(pwd)/.tflint.hcl"
 
   plan:
     name: Test - Terraform Plan

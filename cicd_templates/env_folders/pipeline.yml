@@ -34,12 +34,12 @@ jobs:
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
       - name: Run TFLint (env)
         run: |
-          tflint --init --chdir --config="$(pwd)/.tflint.hcl" ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-          tflint --recursive --chdir --config="$(pwd)/.tflint.hcl" ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+          tflint --init --chdir=./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }} --config="$(pwd)/.tflint.hcl"
+          tflint --recursive --chdir=./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }} --config="$(pwd)/.tflint.hcl"
       - name: Run TFLint (modules)
         run: |
-          tflint --init --chdir --config="$(pwd)/.tflint.hcl" ./modules
-          tflint --recursive --chdir --config="$(pwd)/.tflint.hcl" ./modules
+          tflint --init --chdir=./modules --config="$(pwd)/.tflint.hcl"
+          tflint --recursive --chdir=./modules --config="$(pwd)/.tflint.hcl"
 
   plan:
     name: Test - Terraform Plan
