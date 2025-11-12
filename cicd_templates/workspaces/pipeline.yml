@@ -34,8 +34,8 @@ jobs:
 
       - name: Run TFLint
         run: |
-          tflint --init
-          tflint --recursive
+          tflint --init --config="$(pwd)/.tflint.hcl"
+          tflint --recursive --config="$(pwd)/.tflint.hcl"
 
   plan:
     name: Test - Terraform Plan

@@ -40,15 +40,15 @@ jobs:
       - name: Run TFLint (env)
         working-directory: check
         run: |
-          # tflint --init --chdir ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-          # tflint --recursive --chdir ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-          tflint --init --chdir ./envs/dev
-          tflint --recursive --chdir ./envs/dev
+          # tflint --init --chdir --config="$(pwd)/.tflint.hcl" ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+          # tflint --recursive --chdir --config="$(pwd)/.tflint.hcl" ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+          tflint --init --chdir --config="$(pwd)/.tflint.hcl" ./envs/dev
+          tflint --recursive --chdir --config="$(pwd)/.tflint.hcl" ./envs/dev
       - name: Run TFLint (modules)
         working-directory: check
         run: |
-          tflint --init --chdir ./modules
-          tflint --recursive --chdir ./modules
+          tflint --init --chdir --config="$(pwd)/.tflint.hcl" ./modules 
+          tflint --recursive --chdir --config="$(pwd)/.tflint.hcl" ./modules
 
   plan:
     name: Test - Terraform Plan
