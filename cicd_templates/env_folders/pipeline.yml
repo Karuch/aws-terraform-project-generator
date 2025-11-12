@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
+    env:
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
       - name: Terraform Format Check (env)
@@ -26,6 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
+    env:
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
       - name: Install TFLint
@@ -64,7 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: check/tfplan
+          path: tfplan
           if-no-files-found: ignore
 
   checkov:
@@ -74,6 +78,7 @@ jobs:
       image: hashicorp/terraform:1.13.4
     steps:
       - uses: actions/checkout@v4
+
       - name: Install Checkov
         run: |
           apk add --no-cache python3 py3-pip
@@ -81,16 +86,8 @@ jobs:
 
       - name: Run Checkov Scan
         run: |
-          checkov -d . --framework terraform --compact --quiet \
-          --output-file-path checkov_report.json || true
-
-      - name: Upload Checkov Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: checkov-report
-          path: check/checkov_report.json
-          if-no-files-found: ignore
+          checkov -d ./envs/dev --framework terraform --compact --quiet || true
+          checkov -d ./modules --framework terraform --compact --quiet || true
 
  
   apply:
@@ -130,6 +127,7 @@ jobs:
           terraform_version: 1.13.4
 
       - name: Terraform Init
+        working-directory: envs/${{ env.ENVIRONMENT }}
         run: |
           terraform init -input=false -reconfigure \
             -backend-config="bucket=${{ env.S3_BUCKET }}" \
@@ -139,12 +137,10 @@ jobs:
             -backend-config="encrypt=true" \
             -backend-config="workspace_key_prefix=${{ env.PROJECT_NAME }}"
 
-      - name: Terraform Workspace (create or select)
-        run: |
-          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
-
       - name: Terraform Plan
+        working-directory: envs/${{ env.ENVIRONMENT }}
         run: terraform plan -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" -out=tfplan
 
       - name: Terraform Apply
+        working-directory: envs/${{ env.ENVIRONMENT }}
         run: terraform apply "tfplan"

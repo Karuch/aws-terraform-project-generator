@@ -16,11 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
+    env:
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
       - name: Terraform Format Check (env)
         working-directory: check
-        # run: terraform fmt -check -recursive ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
         run: terraform fmt -check -recursive ./envs/dev
       - name: Terraform Format Check (modules)
         working-directory: check
@@ -31,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
+    env:
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
       - name: Install TFLint
@@ -40,8 +43,6 @@ jobs:
       - name: Run TFLint (env)
         working-directory: check
         run: |
-          # tflint --init --chdir=./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }} --config="$(pwd)/.tflint.hcl"
-          # tflint --recursive --chdir=./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }} --config="$(pwd)/.tflint.hcl"
           tflint --init --chdir=./envs/dev --config="$(pwd)/.tflint.hcl"
           tflint --recursive --chdir=./envs/dev --config="$(pwd)/.tflint.hcl"
       - name: Run TFLint (modules)
@@ -55,19 +56,22 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
+    env:
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Terraform Init (no backend)
-        working-directory: check
+        working-directory: check/envs/dev
         run: terraform init -backend=false
 
       - name: Terraform Validate
-        working-directory: check
-        run: terraform validate -no-color
+        run: |
+          terraform -chdir=check/envs/dev validate -no-color
+          terraform -chdir=check/modules validate -no-color
 
       - name: Terraform Plan (local only)
-        working-directory: check
+        working-directory: check/envs/dev
         run: |
           terraform plan -input=false -lock=false -refresh=false -out=tfplan || true
 
@@ -86,25 +90,16 @@ jobs:
       image: hashicorp/terraform:1.13.4
     steps:
       - uses: actions/checkout@v4
+
       - name: Install Checkov
         run: |
           apk add --no-cache python3 py3-pip
           pip install --break-system-packages checkov
 
       - name: Run Checkov Scan
-        working-directory: check
         run: |
-          checkov -d . --framework terraform --compact --quiet \
-          --output-file-path checkov_report.json
-
-      - name: Upload Checkov Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: checkov-report
-          path: check/checkov_report.json
-          if-no-files-found: ignore
-
+          checkov -d ./envs/dev --framework terraform --compact --quiet || true
+          checkov -d ./modules --framework terraform --compact --quiet || true
  
   apply:
     name: Deploy - Terraform Apply
@@ -118,7 +113,7 @@ jobs:
       AWS_ROLE_NAME: terraform-ci-role
       S3_BUCKET: project-generator-test-backend
       DDB_LOCK_TABLE: project-generator-test-lock
-      ENVIRONMENT: ${{ github.ref_name }}
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
       PROJECT: talfoundsecret4
     steps:
       - uses: actions/checkout@v4
@@ -141,7 +136,7 @@ jobs:
           terraform_version: 1.13.4
 
       - name: Terraform Init
-        working-directory: check
+        working-directory: check/envs/dev
         run: |
           terraform init -input=false -reconfigure \
             -backend-config="bucket=${{ env.S3_BUCKET }}" \
@@ -150,16 +145,11 @@ jobs:
             -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
             -backend-config="encrypt=true" \
             -backend-config="workspace_key_prefix=${{ env.PROJECT }}"
-
-      - name: Terraform Workspace (create or select)
-        working-directory: check
-        run: |
-          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
-
+            
       - name: Terraform Plan
-        working-directory: check
-        run: terraform plan -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" -out=tfplan
+        working-directory: check/envs/dev
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        working-directory: check
+        working-directory: check/envs/dev
         run: terraform apply "tfplan"
