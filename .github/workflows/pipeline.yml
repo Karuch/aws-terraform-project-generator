@@ -95,7 +95,7 @@ jobs:
         working-directory: check
         run: |
           checkov -d . --framework terraform --compact --quiet \
-          --output-file-path checkov_report.json || true
+          --output-file-path checkov_report.json
 
       - name: Upload Checkov Report
         if: always()
