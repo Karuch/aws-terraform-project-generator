@@ -18,12 +18,12 @@ jobs:
       image: hashicorp/terraform:1.13.4
     steps:
       - uses: actions/checkout@v4
-      - name: ls
-        run: ls; pwd
       - name: Terraform Format Check (env)
+        working-directory: check
         # run: terraform fmt -check -recursive ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
         run: terraform fmt -check -recursive ./envs/dev
       - name: Terraform Format Check (modules)
+        working-directory: check
         run: terraform fmt -check -recursive ./modules
 
   lint:
@@ -38,12 +38,14 @@ jobs:
           apk add --no-cache curl bash
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
       - name: Run TFLint (env)
+        working-directory: check
         run: |
           # tflint --init --chdir ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
           # tflint --recursive --chdir ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
           tflint --init --chdir ./envs/dev
           tflint --recursive --chdir ./envs/dev
       - name: Run TFLint (modules)
+        working-directory: check
         run: |
           tflint --init --chdir ./modules
           tflint --recursive --chdir ./modules
