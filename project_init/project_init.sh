@@ -6,12 +6,12 @@
 #   --workspaces  : single-folder workspace-style project
 #
 # Usage:
-#   ./project_init.sh [--env-folders|--workspaces] --bucket <bucket> --dynamodb-table <table> --region <region> --project <project>
+#   ./project_init.sh [--env-folders|--workspaces] --bucket <bucket> --dynamodb-table <table> --region <region> --project <project> --cicd-role <terraform apply role> (optional) --acount-id <aws account id> (optional)
 #
 # Example:
-#   ./project_init.sh --env-folders --bucket my-bucket --dynamodb-table my-lock --region il-central-1 --project myproj
-#   ./project_init.sh --workspaces  --bucket my-bucket --dynamodb-table my-lock --region il-central-1 --project myproj
-# ---------------------------------------------------------------------------
+#   ./project_init.sh --env-folders --bucket my-bucket --dynamodb-table my-lock --region il-central-1 --project myproj --cicd-role ApplyRoleName --account-id 12345678910
+#   ./project_init.sh --workspaces  --bucket my-bucket --dynamodb-table my-lock --region il-central-1 --project myproj --cicd-role ApplyRoleName --account-id 12345678910
+# --------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # Parse mode flag

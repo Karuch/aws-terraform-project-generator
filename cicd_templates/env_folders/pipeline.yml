@@ -87,6 +87,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
+    env:
+      # if branch == main → prod, otherwise use branch name
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
@@ -114,7 +117,7 @@ jobs:
       AWS_ACCOUNT_ID: ""
       AWS_ROLE_NAME: ""
       # if branch == main → prod, otherwise use branch name
-      ENVIRONMENT: ${{ github.event.inputs.environment == 'main' && 'prod' || github.event.inputs.environment }}
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
   
     steps:
       - uses: actions/checkout@v4
