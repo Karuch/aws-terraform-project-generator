@@ -6,7 +6,7 @@ permissions:
 
 on:
   push:
-    branches: [ "main", "dev", "staging"]
+    branches: ["main", "dev", "staging"]
 
 jobs:
   fmt:
