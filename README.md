@@ -44,14 +44,14 @@ cd ./<project-name>
 4. create a git repository for the project
 5. set the newly created project repo as the origin and commit:
 ```
-git init -b dev
+git init -b main
 git remote add origin <project-repository>.git
 git add .
 git commit -m "Initial commit"
 ```
 6. push the template to git (to `main/dev/staging` branches):
 ```
-git push -u origin dev
+git push -u origin main --force
 ```
 
 ### Generate S3 backend and DynamoDB lock using `backend_init.sh`
