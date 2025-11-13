@@ -48,27 +48,38 @@ jobs:
   plan:
     name: Test - Terraform Plan
     runs-on: ubuntu-latest
+  
     container:
       image: hashicorp/terraform:1.13.4
+  
+    env:
+      # if branch == main → prod, otherwise use branch name
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+  
     steps:
       - uses: actions/checkout@v4
-
+    
       - name: Terraform Init (no backend)
-        run: terraform init -backend=false
-
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform init -backend=false
+  
       - name: Terraform Validate
-        run: terraform validate -no-color
-
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform validate -no-color
+  
       - name: Terraform Plan (local only)
         run: |
+          cd envs/${{ env.ENVIRONMENT }}
           terraform plan -input=false -lock=false -refresh=false -out=tfplan || true
-
+  
       - name: Upload Terraform Plan (if exists)
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: tfplan
+          path: envs/${{ env.ENVIRONMENT }}/tfplan
           if-no-files-found: ignore
 
   checkov:
@@ -94,44 +105,48 @@ jobs:
     name: Deploy - Terraform Apply
     needs: [fmt, lint, plan, checkov]
     runs-on: ubuntu-latest
+  
     container:
       image: hashicorp/terraform:1.13.4
+  
     env:
       AWS_REGION: ""
       AWS_ACCOUNT_ID: ""
       AWS_ROLE_NAME: ""
       # if branch == main → prod, otherwise use branch name
-      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-      
+      ENVIRONMENT: ${{ github.event.inputs.environment == 'main' && 'prod' || github.event.inputs.environment }}
+  
     steps:
       - uses: actions/checkout@v4
-
+  
       - name: Install Node.js (for GitHub Actions runtime)
         run: |
           apk add --no-cache nodejs npm
           node --version
           npm --version
-
+  
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v5.1.0
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
-
+  
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.13.4
-
+  
       - name: Terraform Init
-        working-directory: envs/${{ env.ENVIRONMENT }}
         run: |
+          cd envs/${{ env.ENVIRONMENT }}
           terraform init -input=false -reconfigure
-
-      - name: Terraform Plan
-        working-directory: envs/${{ env.ENVIRONMENT }}
-        run: terraform plan -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" -out=tfplan
-
+  
+      - name: Terraform Plan (debug / optional)
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform plan -out=tfplan
+  
       - name: Terraform Apply
-        working-directory: envs/${{ env.ENVIRONMENT }}
-        run: terraform apply "tfplan"
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform apply -input=false "tfplan"

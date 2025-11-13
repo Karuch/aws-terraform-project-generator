@@ -117,7 +117,7 @@ if [ "$MODE" = "--env-folders" ]; then
 terraform {
   backend "s3" {
     bucket         = "$BUCKET_NAME"
-    key            = "terraform/${PROJECT_NAME}/${ENV}/terraform.tfstate"
+    key            = "${PROJECT_NAME}-tfstates/${ENV}/terraform.tfstate"
     region         = "$REGION_NAME"
     dynamodb_table = "$DYNAMO_TABLE_NAME"
     encrypt        = true
@@ -141,6 +141,52 @@ EOF
   echo "✅ Project '$PROJECT_NAME' initialized successfully in env-folder mode."
   echo "   Backends created under: $DEST_DIR/envs/{dev,staging,prod}"
 
+  # -------------------------------------------------------------------------
+  # Copy CI/CD workflows (--env-folders mode)
+  # -------------------------------------------------------------------------
+
+  WORKFLOWS_SRC="cicd_templates/env_folders"
+  WORKFLOWS_DEST="$DEST_DIR/.github/workflows"
+
+  echo "Setting up GitHub Actions workflows..."
+  mkdir -p "$WORKFLOWS_DEST" || {
+    echo "Error: Failed to create workflows directory." >&2
+    exit 1
+  }
+
+  for FILE in pipeline.yml destroy.yml; do
+    if [ -f "$WORKFLOWS_SRC/$FILE" ]; then
+      cp "$WORKFLOWS_SRC/$FILE" "$WORKFLOWS_DEST/" || {
+        echo "Error: Failed to copy $FILE" >&2
+        exit 1
+      }
+      echo "Copied $FILE → $WORKFLOWS_DEST/"
+    else
+      echo "Warning: $WORKFLOWS_SRC/$FILE not found."
+    fi
+  done
+
+  echo "   GitHub workflows copied to: $WORKFLOWS_DEST"
+  echo
+
+  # -------------------------------------------------------------------------
+  # Inject environment variables into pipeline.yml (--env-folders)
+  # -------------------------------------------------------------------------
+
+  for FILE in "$WORKFLOWS_DEST/pipeline.yml" "$WORKFLOWS_DEST/destroy.yml"; do
+      if [ -f "$FILE" ]; then
+          echo "Updating environment variable values in $FILE..."
+
+          sed -i "s|^\([[:space:]]*AWS_REGION:\).*|\1 $REGION_NAME|" "$FILE"
+          sed -i "s|^\([[:space:]]*AWS_ACCOUNT_ID:\).*|\1 \"$AWS_ACCOUNT_ID\"|" "$FILE"
+          sed -i "s|^\([[:space:]]*AWS_ROLE_NAME:\).*|\1 $AWS_ROLE_NAME|" "$FILE"
+
+          echo "✅ Environment values replaced successfully in $FILE."
+      else
+          echo "⚠️ $(basename "$FILE") not found — skipping env replacement."
+      fi
+  done
+
 # ---------------------------------------------------------------------------
 # MODE 2: Workspace-based structure
 # ---------------------------------------------------------------------------
@@ -163,11 +209,11 @@ elif [ "$MODE" = "--workspaces" ]; then
 terraform {
   backend "s3" {
     bucket               = "$BUCKET_NAME"
-    key                  = "${PROJECT_NAME}/terraform.tfstate"
+    key                  = "terraform.tfstate"
     region               = "$REGION_NAME"
     dynamodb_table       = "$DYNAMO_TABLE_NAME"
     encrypt              = true
-    workspace_key_prefix = "${PROJECT_NAME}"
+    workspace_key_prefix = "${PROJECT_NAME}-tfstates"
   }
 }
 EOF
@@ -211,45 +257,23 @@ EOF
   echo
 
   # -------------------------------------------------------------------------
-  # Inject environment variables into pipeline.yml
+  # Inject environment variables into pipeline.yml (--workspaces mode)
   # -------------------------------------------------------------------------
-  PIPELINE_FILE="$WORKFLOWS_DEST/pipeline.yml"
 
-  if [ -f "$PIPELINE_FILE" ]; then
-    echo "Updating environment variable values in $PIPELINE_FILE..."
+  for FILE in "$WORKFLOWS_DEST/pipeline.yml" "$WORKFLOWS_DEST/destroy.yml"; do
+      if [ -f "$FILE" ]; then
+          echo "Updating environment variable values in $FILE..."
 
-    sed -i "s|^\([[:space:]]*AWS_REGION:\).*|\1 $REGION_NAME|" "$PIPELINE_FILE"
-    sed -i "s|^\([[:space:]]*AWS_ACCOUNT_ID:\).*|\1 \"$AWS_ACCOUNT_ID\"|" "$PIPELINE_FILE"
-    sed -i "s|^\([[:space:]]*AWS_ROLE_NAME:\).*|\1 $AWS_ROLE_NAME|" "$PIPELINE_FILE"
-    sed -i "s|^\([[:space:]]*S3_BUCKET:\).*|\1 $BUCKET_NAME|" "$PIPELINE_FILE"
-    sed -i "s|^\([[:space:]]*DDB_LOCK_TABLE:\).*|\1 $DYNAMO_TABLE_NAME|" "$PIPELINE_FILE"
-    sed -i "s|^\([[:space:]]*PROJECT_NAME:\).*|\1 $PROJECT_NAME|" "$PIPELINE_FILE"
+          sed -i "s|^\([[:space:]]*AWS_REGION:\).*|\1 $REGION_NAME|" "$FILE"
+          sed -i "s|^\([[:space:]]*AWS_ACCOUNT_ID:\).*|\1 \"$AWS_ACCOUNT_ID\"|" "$FILE"
+          sed -i "s|^\([[:space:]]*AWS_ROLE_NAME:\).*|\1 $AWS_ROLE_NAME|" "$FILE"
 
-    echo "✅ Environment values replaced successfully."
-  else
-    echo "⚠️  pipeline.yml not found — skipping env replacement."
-  fi
+          echo "✅ Environment values replaced successfully in $FILE."
+      else
+          echo "⚠️ $(basename "$FILE") not found — skipping env replacement."
+      fi
+  done
   
-  # -------------------------------------------------------------------------
-  # Inject environment variables into destroy.yml
-  # -------------------------------------------------------------------------
-  DESTROY_FILE="$WORKFLOWS_DEST/destroy.yml"
-
-  if [ -f "$DESTROY_FILE" ]; then
-    echo "Updating environment variable values in $DESTROY_FILE..."
-
-    sed -i "s|^\([[:space:]]*AWS_REGION:\).*|\1 $REGION_NAME|" "$DESTROY_FILE"
-    sed -i "s|^\([[:space:]]*AWS_ACCOUNT_ID:\).*|\1 \"$AWS_ACCOUNT_ID\"|" "$DESTROY_FILE"
-    sed -i "s|^\([[:space:]]*AWS_ROLE_NAME:\).*|\1 $AWS_ROLE_NAME|" "$DESTROY_FILE"
-    sed -i "s|^\([[:space:]]*S3_BUCKET:\).*|\1 $BUCKET_NAME|" "$DESTROY_FILE"
-    sed -i "s|^\([[:space:]]*DDB_LOCK_TABLE:\).*|\1 $DYNAMO_TABLE_NAME|" "$DESTROY_FILE"
-    sed -i "s|^\([[:space:]]*PROJECT_NAME:\).*|\1 $PROJECT_NAME|" "$DESTROY_FILE"
-
-    echo "✅ Environment values replaced successfully in destroy.yml."
-  else
-    echo "⚠️  destroy.yml not found — skipping env replacement."
-  fi
-
 # ---------------------------------------------------------------------------
 # Invalid mode
 # ---------------------------------------------------------------------------

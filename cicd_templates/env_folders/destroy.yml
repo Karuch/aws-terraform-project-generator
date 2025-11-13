@@ -16,14 +16,18 @@ jobs:
   destroy:
     name: Destroy - Terraform
     runs-on: ubuntu-latest
+
     container:
       image: hashicorp/terraform:1.13.4
+
     env:
       AWS_REGION: ""
       AWS_ACCOUNT_ID: ""
       AWS_ROLE_NAME: ""
-      # if branch == main → prod, otherwise use branch name
+
+      # if environment == main → prod, otherwise use provided environment
       ENVIRONMENT: ${{ github.event.inputs.environment == 'main' && 'prod' || github.event.inputs.environment }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -38,17 +42,18 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform # that's needed only if terraform does not exist in the container or maybe just keep this in case client will change
-        uses: hashicorp/setup-terraform@v3  # the environement to something else then terraform container or I
+      - name: Setup Terraform   # Only needed if the client replaces the container
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.13.4
 
       - name: Terraform Init
         run: |
+          cd envs/${{ env.ENVIRONMENT }}
           terraform init -input=false -reconfigure
 
       - name: Terraform Destroy
-        working-directory: envs/${{ env.ENVIRONMENT }}
         run: |
+          cd envs/${{ env.ENVIRONMENT }}
           terraform plan -destroy -out=tfplan-destroy
           terraform apply -auto-approve "tfplan-destroy"
