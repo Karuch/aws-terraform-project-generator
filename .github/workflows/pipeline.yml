@@ -112,10 +112,7 @@ jobs:
       AWS_REGION: us-east-1
       AWS_ACCOUNT_ID: "061039770549"
       AWS_ROLE_NAME: terraform-ci-role
-      S3_BUCKET: project-generator-test-backend
-      DDB_LOCK_TABLE: project-generator-test-lock
       ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-      PROJECT: talfoundsecret4
     steps:
       - uses: actions/checkout@v4
 
@@ -139,13 +136,7 @@ jobs:
       - name: Terraform Init
         working-directory: check/envs/dev
         run: |
-          terraform init -input=false -reconfigure \
-            -backend-config="bucket=${{ env.S3_BUCKET }}" \
-            -backend-config="key=terraform.tfstate" \
-            -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
-            -backend-config="encrypt=true" \
-            -backend-config="workspace_key_prefix=${{ env.PROJECT }}"
+          terraform init -input=false -reconfigure
             
       - name: Terraform Plan
         working-directory: check/envs/dev

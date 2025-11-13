@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Terraform Format Check (env)
-        run: terraform fmt -check -recursive ./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+        run: terraform fmt -check -recursive ./envs/${{ env.ENVIRONMENT }}
       - name: Terraform Format Check (modules)
         run: terraform fmt -check -recursive ./modules
 
@@ -38,8 +38,8 @@ jobs:
           curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
       - name: Run TFLint (env)
         run: |
-          tflint --init --chdir=./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }} --config="$(pwd)/.tflint.hcl"
-          tflint --recursive --chdir=./envs/${{ github.ref_name == 'main' && 'prod' || github.ref_name }} --config="$(pwd)/.tflint.hcl"
+          tflint --init --chdir=./envs/${{ env.ENVIRONMENT }} --config="$(pwd)/.tflint.hcl"
+          tflint --recursive --chdir=./envs/${{ env.ENVIRONMENT }} --config="$(pwd)/.tflint.hcl"
       - name: Run TFLint (modules)
         run: |
           tflint --init --chdir=./modules --config="$(pwd)/.tflint.hcl"
@@ -86,8 +86,8 @@ jobs:
 
       - name: Run Checkov Scan
         run: |
-          checkov -d ./envs/dev --framework terraform --compact --quiet || true
-          checkov -d ./modules --framework terraform --compact --quiet || true
+          checkov -d ./envs/${{ env.ENVIRONMENT }} --framework terraform --compact --quiet
+          checkov -d ./modules --framework terraform --compact --quiet
 
  
   apply:
@@ -100,11 +100,8 @@ jobs:
       AWS_REGION: ""
       AWS_ACCOUNT_ID: ""
       AWS_ROLE_NAME: ""
-      S3_BUCKET: ""
-      DDB_LOCK_TABLE: ""
       # if branch == main → prod, otherwise use branch name
       ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-      PROJECT_NAME: ""
       
     steps:
       - uses: actions/checkout@v4
@@ -129,13 +126,7 @@ jobs:
       - name: Terraform Init
         working-directory: envs/${{ env.ENVIRONMENT }}
         run: |
-          terraform init -input=false -reconfigure \
-            -backend-config="bucket=${{ env.S3_BUCKET }}" \
-            -backend-config="key=terraform.tfstate" \
-            -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="dynamodb_table=${{ env.DDB_LOCK_TABLE }}" \
-            -backend-config="encrypt=true" \
-            -backend-config="workspace_key_prefix=${{ env.PROJECT_NAME }}"
+          terraform init -input=false -reconfigure
 
       - name: Terraform Plan
         working-directory: envs/${{ env.ENVIRONMENT }}
