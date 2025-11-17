@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment to destroy (e.g. dev, staging, prod)"
+        description: "Warning: Are you sure you want to destroy the environment for the branch you selected? To confirm, type the exact branch name you selected."
         required: true
         default: dev
 
@@ -27,6 +27,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate environment matches expected ENVIRONMENT
+        run: |
+          INPUT_ENV="${{ env.ENVIRONMENT }}"
+          EXPECTED_ENV=${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+          EXPECTED_ENV_ERROR=${{ github.ref_name }}
+
+          echo "Input environment: $INPUT_ENV"
+          echo "Expected (from env.ENVIRONMENT): $EXPECTED_ENV"
+
+          if [ "$INPUT_ENV" != "$EXPECTED_ENV" ]; then
+            echo "❌ ERROR: Environment input ('$INPUT_ENV') must match expected ('$EXPECTED_ENV_ERROR')"
+            exit 1
+          fi
+
+          echo "✅ Environment input matches expected environment."
+          
       - name: Install Node.js (for GitHub Actions runtime)
         run: |
           apk add --no-cache nodejs npm

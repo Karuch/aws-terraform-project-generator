@@ -36,12 +36,12 @@ Examples:
   workspaces mode:
 
   ./project_init.sh --workspaces \
-    --project myproj \
-    --bucket tfstate-bucket \
-    --dynamodb-table tf-locks \
-    --region eu-west-1 \
+    --project myProject \
+    --bucket myTfstateBucket \
+    --dynamodb-table myDynamoDBLockTable \
+    --region us-east-1 \
     --account-id 123456789012 \
-    --cicd-role TerraformApplyRole
+    --cicd-role myTerrafromApplyRole
 
   env-folders mode: 
 

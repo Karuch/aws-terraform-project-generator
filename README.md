@@ -5,12 +5,18 @@ it currently support two structure methodology: `env folders` and `workspaces`.
 
 ## Getting Started
 
-1. Clone the generator repo:
+**1.** Clone the generator repo:
 ```bash
 git clone git@github.com:Karuch/aws-terraform-project-generator
 cd aws-terraform-project-generator
 ```
-2. generate project template:  
+Terraform requires an **S3 bucket** (to store the remote state) and a **DynamoDB table** (to provide state locking and prevent simultaneous writes).  
+**If you don’t already have those**, you can generate them using the helper script:
+
+See: [Generate S3 backend and DynamoDB lock using `backend_init.sh`](#generate-s3-backend-and-dynamodb-lock-using-backend_initsh)
+
+
+**2.** generate project template:  
 
 **note: the script support combination of flags and interactive usage**  
 **if you forget to mention one of the flags it will ask you for it interactivly**  
@@ -22,12 +28,12 @@ in each environement (env.tfvars), please use `--workspaces`:
 ```
 # --account-id and --cicd-role are optional and needed for CICD
 ./project_init/project_init.sh --workspaces \
-  --project myproj \
-  --bucket tfstate-bucket \
-  --dynamodb-table tf-locks \
-  --region eu-west-1 \
+  --project myProject \
+  --bucket myTfstateBucket \
+  --dynamodb-table myDynamoDBLockTable \
+  --region us-east-1 \
   --account-id 123456789012 \
-  --cicd-role TerraformApplyRole
+  --cicd-role myTerrafromApplyRole
 ```
 Is your project might have different resources across different environments OR
 you might need different credentials/backends per environment? (different account, region, bucket etc') to deploy resources.
@@ -52,19 +58,19 @@ if yes, please use `--env-folders`:
   --cicd-role-staging StagingTerraformRole \
   --cicd-role-prod ProdTerraformRole
 ```
-3. cd to the newly created project directory.
+**3.** cd to the newly created project directory.
 ```
 cd ./<project-name>
 ```
-4. create a git repository for the project
-5. set the newly created project repo as the origin and commit:
+**4. create a git repository for the project**  
+**5.** set the newly created project repo as the origin and commit:
 ```
 git init -b main
-git remote add origin <project-repository>.git
+git remote add origin <repository-url>
 git add .
 git commit -m "Initial commit"
 ```
-6. push the template to git (to `main/dev/staging` branches):
+**6.** push the template to git (to `main/dev/staging` branches):
 **you might need to merge changes or `--force`** if you deployed the repo with README.md etc'
 ```
 git push -u origin main
@@ -75,8 +81,8 @@ git push -u origin main
 If you don't have s3 bucket (for remote state) and dynamodb table (for locking the state to prevent simutianisly writes) already
 you can use `backend_init.sh` script to creating those:
 ```
-./init_backend/remote_state_init.sh <prefix> <region>
-Example: ./init_backend/remote_state_init.sh myproject us-east-1
+./backend_init/backend_init.sh <prefix> <region>
+Example: ./backend_init/backend_init.sh myproject us-east-1
 ```
 If you already have you can use those later.
 
@@ -151,7 +157,9 @@ apply prod:
 
 ### Terraform apply using CI/CD (recommended)
 
-**note that CI/CD will run automatically each time you commit something to `dev/main/staging`.**
+
+**note that CI/CD will run automatically each time you commit something to `dev/main/staging`,**  
+**the branch names must be `main` or `staging` or `dev`.**  
 **for the first time it should failed in the security scan stage that will try to scan the built in example modules: `ec2` and `vpc`.**
 
 the `project_init.sh` script generate automatically github workflow files under `project/.github/workflows`  
