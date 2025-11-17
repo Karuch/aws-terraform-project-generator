@@ -21,15 +21,18 @@ jobs:
       image: hashicorp/terraform:1.13.4
 
     env:
-      AWS_REGION: ""
-      AWS_ACCOUNT_ID: ""
-      AWS_ROLE_NAME: ""
-
       # if environment == main → prod, otherwise use provided environment
       ENVIRONMENT: ${{ github.event.inputs.environment == 'main' && 'prod' || github.event.inputs.environment }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Load environment settings
+        run: |
+          . envs/${{ env.ENVIRONMENT }}/env.config
+          echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "AWS_ROLE_NAME=$AWS_ROLE_NAME" >> $GITHUB_ENV
 
       - name: Install Node.js (for GitHub Actions runtime)
         run: |

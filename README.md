@@ -11,31 +11,46 @@ git clone git@github.com:Karuch/aws-terraform-project-generator
 cd aws-terraform-project-generator
 ```
 2. generate project template:  
-Is your project might have different resources across different stages? (e.g prod, dev, staging)  
+
+**note: the script support combination of flags and interactive usage**  
+**if you forget to mention one of the flags it will ask you for it interactivly**  
+**you can also put all the flags interactivly.**  
+
+If your project will have a single backend for all environments (e.g prod, dev, staging)
+and the same resources, and the only difference is the values you will use in the variables
+in each environement (env.tfvars), please use `--workspaces`:
+```
+# --account-id and --cicd-role are optional and needed for CICD
+./project_init/project_init.sh --workspaces \
+  --project myproj \
+  --bucket tfstate-bucket \
+  --dynamodb-table tf-locks \
+  --region eu-west-1 \
+  --account-id 123456789012 \
+  --cicd-role TerraformApplyRole
+```
+Is your project might have different resources across different environments OR
+you might need different credentials/backends per environment? (different account, region, bucket etc') to deploy resources.
 if yes, please use `--env-folders`:
 ```
 # --account-id and --cicd-role are optional and needed for CICD
-./project_init/project_init.sh \
-  --env-folders \
-  --bucket backend-bucket-name \
-  --dynamodb-table lock-table-name \
-  --region us-east-1 \
-  --project myproject \
-  --account-id 012345678910 \
-  --cicd-role terraform-apply-role
-```
-If your project will have the same resources across all stages (e.g prod, dev, staging), you are ok with shared backend within all the environements and the only  
-difference is the values you will use in the variables in each environement, please use `--workspaces`:
-```
-# --account-id and --cicd-role are optional and needed for CICD
-./project_init/project_init.sh \
-  --workspaces \
-  --bucket backend-bucket-name \
-  --dynamodb-table lock-table-name \
-  --region us-east-1 \
-  --project myproject \
-  --account-id 012345678910 \
-  --cicd-role terraform-apply-role
+./project_init/project_init.sh --env-folders \
+  --project myproj \
+  --bucket-dev dev-bucket \
+  --bucket-staging staging-bucket \
+  --bucket-prod prod-bucket \
+  --dynamodb-table-dev dev-locks \
+  --dynamodb-table-staging staging-locks \
+  --dynamodb-table-prod prod-locks \
+  --region-dev eu-west-1 \
+  --region-staging eu-west-2 \
+  --region-prod eu-central-1 \
+  --account-id-dev 111111111111 \
+  --account-id-staging 222222222222 \
+  --account-id-prod 333333333333 \
+  --cicd-role-dev DevTerraformRole \
+  --cicd-role-staging StagingTerraformRole \
+  --cicd-role-prod ProdTerraformRole
 ```
 3. cd to the newly created project directory.
 ```
@@ -50,8 +65,9 @@ git add .
 git commit -m "Initial commit"
 ```
 6. push the template to git (to `main/dev/staging` branches):
+**you might need to merge changes or `--force`** if you deployed the repo with README.md etc'
 ```
-git push -u origin main --force
+git push -u origin main
 ```
 
 ### Generate S3 backend and DynamoDB lock using `backend_init.sh`
@@ -135,7 +151,15 @@ apply prod:
 
 ### Terraform apply using CI/CD (recommended)
 
-note that CI/CD will run automatically each time you commit something to `dev/main/staging`.
+**note that CI/CD will run automatically each time you commit something to `dev/main/staging`.**
+**for the first time it should failed in the security scan stage that will try to scan the built in example modules: `ec2` and `vpc`.**
+
+the `project_init.sh` script generate automatically github workflow files under `project/.github/workflows`  
+`pipeline.yml`: used for build, test, scan, deploy your terraform code.  
+`destroy.yml`: used for terraform destroy.  
+both works differently according to the mode you used to generate the project
+folder (`--workspaces`, `--env-folders`).  
+and also **both need OIDC configured** to use terraform apply and terraform destroy.
 <details>
 <summary>Create OIDC provider if not exist</summary>
 Create OIDC provider for github actions if not exist:
@@ -290,3 +314,6 @@ Distributed under the Apache License 2.0. See `LICENSE.txt` for more information
 Email: talk474747@gmail.com  
 Linkedin: [www.linkedin.com/in/tal-karucci](https://www.linkedin.com/in/tal-karucci-678286290)  
 Project Link: [github.com/Karuch/aws-terraform-project-generator](https://github.com/Karuch/aws-terraform-project-generator)
+
+Special thanks for my colleague **Aharon Ulanov** for the help.  
+Linkedin: [www.linkedin.com/in/aharon-ulano](https://www.linkedin.com/in/aharon-ulano-861222264/)  
