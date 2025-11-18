@@ -1,6 +1,8 @@
+# won't pass Chekhov intentionally on CI/CD
+
 locals {
-  public_subnet_id  = element(var.subnet_ids, 0)
-  private_subnet_id = element(var.subnet_ids, 1)
+  public_subnet_id  = var.public_subnet_ids[0]
+  private_subnet_id = var.private_subnet_ids[0]
 }
 
 resource "aws_security_group" "public" {

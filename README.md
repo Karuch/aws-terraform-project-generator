@@ -25,7 +25,7 @@ See: [Generate S3 backend and DynamoDB lock using `backend_init.sh`](#generate-s
 If your project will have a single backend for all environments (e.g prod, dev, staging)
 and the same resources, and the only difference is the values you will use in the variables
 in each environement (env.tfvars), please use `--workspaces`:
-```
+```bash
 # --account-id and --cicd-role are optional and needed for CICD
 ./project_init/project_init.sh --workspaces \
   --project myProject \
@@ -39,7 +39,7 @@ Is your project might have different resources across different environments OR
 you might need different credentials/backends per environment? (different account, region, bucket etc') to deploy resources.
 if yes, please use `--env-folders`.  
 if you want you can use the same cerdentials/backend in all of the environments, `--env-folders`:
-```
+```bash
 # --account-id and --cicd-role are optional and needed for CICD
 ./project_init/project_init.sh --env-folders \
   --project myproj \
@@ -60,12 +60,12 @@ if you want you can use the same cerdentials/backend in all of the environments,
   --cicd-role-prod ProdTerraformRole
 ```
 **3.** cd to the newly created project directory.
-```
+```bash
 cd ./<project-name>
 ```
 **4. create a git repository for the project**  
 **5.** set the newly created project repo as the origin and commit:
-```
+```bash
 git init -b main
 git remote add origin <repository-url>.git
 git add .
@@ -73,7 +73,7 @@ git commit -m "Initial commit"
 ```
 **6.** push the template to git (to `main/dev/staging` branches):
 **you might need to merge changes or `--force`** if you deployed the repo with README.md etc'
-```
+```bash
 git push -u origin main
 ```
 
@@ -160,12 +160,12 @@ apply prod:
 
 ### Terraform apply using CI/CD (recommended)
 
+**The branch names must be `main/prod` or `staging` or `dev`.**  
 
-**note that CI/CD will run automatically each time you commit something to `dev/main/staging`,**  
-**the branch names must be `main` or `staging` or `dev`.**  
-**for the first time it should failed in the security scan stage that will try to scan the built in example modules: `ec2` and `vpc`.**
+The `Checkov` security scan will fail the CI/CD while scanning `vpc` and `ec2` modules.  
+to skip you must add `|| true` in `pipeline.yml` where the checks are.
 
-the `project_init.sh` script generate automatically github workflow files under `project/.github/workflows`  
+The `project_init.sh` script generate automatically github workflow files under `project/.github/workflows`  
 `pipeline.yml`: used for build, test, scan, deploy your terraform code.  
 `destroy.yml`: used for terraform destroy.  
 both works differently according to the mode you used to generate the project
@@ -275,10 +275,10 @@ Create a policy file with the required backend permissions
       --policy-document file://terraform-backend-policy.json
 </details>
 
-## Generate subnets easily using the built in VPC module
+## Generate subnets easily using the built in VPC module (optional)
 
 in `modules/vpc`  you've got main.tf with:
-```
+```hcl
 resource "aws_subnet" "subnets" {
   count             = var.subnet_count
   vpc_id            = aws_vpc.main.id
@@ -293,17 +293,28 @@ resource "aws_subnet" "subnets" {
 | Variable             | Description                                                      | Example                                      |
 | -------------------- | ---------------------------------------------------------------- | -------------------------------------------- |
 | `vpc_cidr`           | Base CIDR block for the VPC                                      | `"10.0.0.0/16"`                              |
-| `availability_zones` | List of AZs to spread subnets across in a round robin            | `["us-east-1a", "us-east-1b", "us-east-1c"]` |
-| `subnet_count`       | Total number of subnets to create                                | `6`                                          |
-| `subnet_newbits`     | How many bits to add to split the main CIDR into smaller subnets | `4`                                          |
+| `availability_zones` | List of AZs to distribute subnets in round-robin                 | `["us-east-1a", "us-east-1b", "us-east-1c"]` |
+| `subnet_count`       | Total number of subnets to create                                | `4`                                          |
+| `subnet_newbits`     | How many bits to add to split the VPC network into subnets       | `4`                                          |
 
-This configuration creates 4 subnets within your VPC.
+With the example:
+
+`vpc_cidr      = "10.0.0.0/16"`  
+`subnet_count  = 4`  
+`subnet_newbits = 4` → resulting mask = `/16 + 4 = /20`
+
+Terraform generates **4 subnets**, each `/20`, spread across AZs in a round-robin pattern.
+
+### Created Subnets
+
 | Subnet | CIDR Block   | Availability Zone |
 | :----- | :----------- | :---------------- |
-| 0      | 10.1.0.0/20  | us-east-1a        |
-| 1      | 10.1.16.0/20 | us-east-1b        |
-| 2      | 10.1.32.0/20 | us-east-1c        |
-| 3      | 10.1.48.0/20 | us-east-1a        |
+| 0      | 10.0.0.0/20  | us-east-1a        |
+| 1      | 10.0.16.0/20 | us-east-1b        |
+| 2      | 10.0.32.0/20 | us-east-1c        |
+| 3      | 10.0.48.0/20 | us-east-1a        |
+
+`subnet_newbits` controls how many subnet divisions can exist inside the VPC network.
 
 | Newbits | Resulting Prefix | # of Subnets | IPs per Subnet |
 | :-----: | :--------------- | :----------- | :------------- |
@@ -312,6 +323,8 @@ This configuration creates 4 subnets within your VPC.
 |    2    | /18              | 4            | 16,384         |
 |    3    | /19              | 8            | 8,192          |
 |    4    | /20              | 16           | 4,096          |
+
+Even though `/20` supports up to **16 possible subnets**, Terraform only creates as many as `subnet_count` specifies — in this case, **4**
 
 ## Contributing
 
