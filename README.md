@@ -275,56 +275,113 @@ Create a policy file with the required backend permissions
       --policy-document file://terraform-backend-policy.json
 </details>
 
-## Generate subnets easily using the built in VPC module (optional)
+## Generate subnets easily using the built in `subnet_generator` module (optional)
 
-in `modules/vpc`  you've got main.tf with:
+in `modules/subnet_generator` you've got main.tf with:
 ```hcl
-resource "aws_subnet" "subnets" {
-  count             = var.subnet_count
-  vpc_id            = aws_vpc.main.id
+resource "aws_subnet" "public" {
+  count             = var.public_subnet_count
+  vpc_id            = var.vpc_id
   cidr_block        = cidrsubnet(var.vpc_cidr, var.subnet_newbits, count.index)
   availability_zone = element(var.availability_zones, count.index % length(var.availability_zones))
 
+  map_public_ip_on_launch = true
+
   tags = {
-    Name        = "${var.project}-${var.environment}-${var.component}-${count.index}"
+    Name = "${var.project}-${var.environment}-${var.component}-public-${count.index}"
+  }
+
+  # do not remove this comment! vvv - Checkov false positive bypass
+  # checkov:skip=CKV_AWS_130:Public subnet requires public IP mapping
+}
+
+
+resource "aws_subnet" "private" {
+  count             = var.private_subnet_count
+  vpc_id            = var.vpc_id
+  cidr_block        = cidrsubnet(var.vpc_cidr, var.subnet_newbits, count.index + var.public_subnet_count)
+  availability_zone = element(var.availability_zones, count.index % length(var.availability_zones))
+
+  map_public_ip_on_launch = false
+
+  tags = {
+    Name = "${var.project}-${var.environment}-${var.component}-private-${count.index}"
   }
 }
 ```
-| Variable             | Description                                                      | Example                                      |
-| -------------------- | ---------------------------------------------------------------- | -------------------------------------------- |
-| `vpc_cidr`           | Base CIDR block for the VPC                                      | `"10.0.0.0/16"`                              |
-| `availability_zones` | List of AZs to distribute subnets in round-robin                 | `["us-east-1a", "us-east-1b", "us-east-1c"]` |
-| `subnet_count`       | Total number of subnets to create                                | `4`                                          |
-| `subnet_newbits`     | How many bits to add to split the VPC network into subnets       | `4`                                          |
 
-With the example:
+### Variables
 
-`vpc_cidr      = "10.0.0.0/16"`  
-`subnet_count  = 4`  
-`subnet_newbits = 4` → resulting mask = `/16 + 4 = /20`
+| Variable                | Description                                                 | Example                                      |
+| ----------------------- | ----------------------------------------------------------- | -------------------------------------------- |
+| `vpc_cidr`              | Base CIDR block for the VPC                                | "10.0.0.0/16"                                 |
+| `availability_zones`    | List of AZs to distribute subnets in round-robin           | ["us-east-1a", "us-east-1b"]                  |
+| `public_subnet_count`   | Number of public subnets to create                          | 2                                             |
+| `private_subnet_count`  | Number of private subnets to create                         | 2                                             |
+| `subnet_newbits`        | Bits added to split the VPC network into subnets            | 4                                             |
 
-Terraform generates **4 subnets**, each `/20`, spread across AZs in a round-robin pattern.
+---
 
-### Created Subnets
+## How subnet allocation works
 
+Public subnets use index:
+
+0 ... public_subnet_count - 1
+
+Private subnets start AFTER the public range:
+
+index + public_subnet_count
+
+This guarantees **no CIDR overlap**.
+
+---
+
+## Example
+
+vpc_cidr             = "10.0.0.0/16"  
+public_subnet_count  = 2  
+private_subnet_count = 2  
+subnet_newbits       = 4  
+
+The resulting subnet prefix is:
+
+/16 + 4 = /20
+
+Terraform creates:
+
+Public Subnets:
 | Subnet | CIDR Block   | Availability Zone |
-| :----- | :----------- | :---------------- |
+| ------ | ------------ | ----------------- |
 | 0      | 10.0.0.0/20  | us-east-1a        |
 | 1      | 10.0.16.0/20 | us-east-1b        |
-| 2      | 10.0.32.0/20 | us-east-1c        |
-| 3      | 10.0.48.0/20 | us-east-1a        |
 
-`subnet_newbits` controls how many subnet divisions can exist inside the VPC network.
+Private Subnets:  
+| Subnet | CIDR Block    | Availability Zone |
+| ------ | ------------- | ----------------- |
+| 0      | 10.0.32.0/20  | us-east-1a        |
+| 1      | 10.0.48.0/20  | us-east-1b        |
 
-| Newbits | Resulting Prefix | # of Subnets | IPs per Subnet |
-| :-----: | :--------------- | :----------- | :------------- |
-|    0    | /16              | 1            | 65,536         |
-|    1    | /17              | 2            | 32,768         |
-|    2    | /18              | 4            | 16,384         |
-|    3    | /19              | 8            | 8,192          |
-|    4    | /20              | 16           | 4,096          |
+(Private subnets begin at index 2 because public_subnet_count = 2)
 
-Even though `/20` supports up to **16 possible subnets**, Terraform only creates as many as `subnet_count` specifies — in this case, **4**
+---
+
+### Understanding `subnet_newbits`
+
+`subnet_newbits` controls how many subnet divisions are possible inside the VPC block.
+
+| Newbits | Resulting Prefix | Max Possible Subnets | IPs per Subnet |
+| :-----: | :--------------- | :------------------- | :------------- |
+|   0     | /16              | 1                    | 65536          |
+|   1     | /17              | 2                    | 32768          |
+|   2     | /18              | 4                    | 16384          |
+|   3     | /19              | 8                    | 8192           |
+|   4     | /20              | 16                   | 4096           |
+
+Even though `/20` supports **16 total subnets**, Terraform only creates:
+
+public_subnet_count + private_subnet_count
+
+---
 
 ## Contributing
 
