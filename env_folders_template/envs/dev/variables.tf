@@ -23,8 +23,13 @@ variable "availability_zones" {
   type        = list(string)
 }
 
-variable "subnet_count" {
-  description = "Number of subnets to create"
+variable "public_subnet_count" {
+  description = "Number of PUBLIC subnets to create"
+  type        = number
+}
+
+variable "private_subnet_count" {
+  description = "Number of PRIVATE subnets to create"
   type        = number
 }
 
@@ -52,4 +57,3 @@ variable "instance_type" {
   description = "Instance type for EC2 instances"
   type        = string
 }
-

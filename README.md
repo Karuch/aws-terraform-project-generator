@@ -163,7 +163,7 @@ apply prod:
 **The branch names must be `main/prod` or `staging` or `dev`.**  
 
 The `Checkov` security scan will fail the CI/CD while scanning `vpc` and `ec2` modules.  
-to skip you must add `|| true` in `pipeline.yml` where the checks are.
+to skip you must add `|| true` in `pipeline.yml` in the `Run Checkov Scan` step commands.  
 
 The `project_init.sh` script generate automatically github workflow files under `project/.github/workflows`  
 `pipeline.yml`: used for build, test, scan, deploy your terraform code.  
