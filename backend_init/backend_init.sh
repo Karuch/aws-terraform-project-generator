@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------
 # Terraform Remote State Initializer
 # Creates an S3 bucket and DynamoDB table for Terraform remote state backend.
-# Supports all AWS regions, including dynamic handling for us-east-1.
+# Outputs ARNs as well.
 # ---------------------------------------------------------------------------
 
 if [ "$#" -ne 2 ]; then
@@ -17,7 +17,7 @@ BUCKET_NAME="${PREFIX}-backend"
 DYNAMO_TABLE_NAME="${PREFIX}-lock"
 ERRORS=0
 
-# Validate prefix format
+# Validate prefix
 if ! echo "$PREFIX" | grep -Eq '^[a-z0-9-]+$'; then
   echo "Error: Prefix must be lowercase letters, numbers, and hyphens only."
   exit 1
@@ -29,9 +29,7 @@ echo "  Bucket: $BUCKET_NAME"
 echo "  Table : $DYNAMO_TABLE_NAME"
 echo
 
-# ---------------------------------------------------------------------------
-# 1. Check if the bucket already exists
-# ---------------------------------------------------------------------------
+# 1. Check bucket
 if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
   echo "S3 bucket $BUCKET_NAME already exists — skipping creation."
 else
@@ -54,23 +52,15 @@ else
   fi
 fi
 
-# ---------------------------------------------------------------------------
-# 2. Enable versioning
-# ---------------------------------------------------------------------------
-echo "Enabling versioning for S3 bucket..."
+# 2. Versioning
+echo "Enabling versioning..."
 aws s3api put-bucket-versioning \
   --bucket "$BUCKET_NAME" \
   --versioning-configuration Status=Enabled \
-  --region "$REGION_NAME"
-if [ $? -ne 0 ]; then
-  echo "Error: Failed to enable versioning for S3 bucket $BUCKET_NAME."
-  ERRORS=$((ERRORS+1))
-fi
+  --region "$REGION_NAME" || ERRORS=$((ERRORS+1))
 
-# ---------------------------------------------------------------------------
-# 3. Enable server-side encryption
-# ---------------------------------------------------------------------------
-echo "Enabling encryption for S3 bucket..."
+# 3. Encryption
+echo "Enabling encryption..."
 aws s3api put-bucket-encryption \
   --bucket "$BUCKET_NAME" \
   --server-side-encryption-configuration '{
@@ -82,15 +72,9 @@ aws s3api put-bucket-encryption \
       }
     ]
   }' \
-  --region "$REGION_NAME"
-if [ $? -ne 0 ]; then
-  echo "Error: Failed to enable encryption for S3 bucket $BUCKET_NAME."
-  ERRORS=$((ERRORS+1))
-fi
+  --region "$REGION_NAME" || ERRORS=$((ERRORS+1))
 
-# ---------------------------------------------------------------------------
-# 4. Create DynamoDB table for state locking
-# ---------------------------------------------------------------------------
+# 4. DynamoDB table
 echo "Creating DynamoDB table $DYNAMO_TABLE_NAME..."
 if aws dynamodb describe-table --table-name "$DYNAMO_TABLE_NAME" --region "$REGION_NAME" >/dev/null 2>&1; then
   echo "DynamoDB table $DYNAMO_TABLE_NAME already exists — skipping creation."
@@ -100,18 +84,20 @@ else
     --attribute-definitions AttributeName=LockID,AttributeType=S \
     --key-schema AttributeName=LockID,KeyType=HASH \
     --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-    --region "$REGION_NAME"
-
-  if [ $? -ne 0 ]; then
-    echo "Error: Failed to create DynamoDB table $DYNAMO_TABLE_NAME."
-    ERRORS=$((ERRORS+1))
-  fi
+    --region "$REGION_NAME" || ERRORS=$((ERRORS+1))
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Generate backend.tf if everything succeeded
+# 5. Generate backend.tf & print ARNs
 # ---------------------------------------------------------------------------
+
 if [ $ERRORS -eq 0 ]; then
+
+  # Compute ARNs
+  ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+  S3_ARN="arn:aws:s3:::$BUCKET_NAME"
+  DDB_ARN="arn:aws:dynamodb:$REGION_NAME:$ACCOUNT_ID:table/$DYNAMO_TABLE_NAME"
+
   cat <<EOF > backend.tf
 terraform {
   backend "s3" {
@@ -123,10 +109,16 @@ terraform {
   }
 }
 EOF
+
   echo
   echo "✅ backend.tf has been generated successfully."
+  echo
+  echo "📌 Resource ARNs:"
+  echo "  - S3 Bucket ARN        : $S3_ARN"
+  echo "  - DynamoDB Table ARN   : $DDB_ARN"
+  echo
+
 else
   echo
   echo "❌ There were errors in creating the resources. backend.tf was not generated."
 fi
-

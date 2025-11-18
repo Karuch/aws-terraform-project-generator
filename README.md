@@ -37,7 +37,8 @@ in each environement (env.tfvars), please use `--workspaces`:
 ```
 Is your project might have different resources across different environments OR
 you might need different credentials/backends per environment? (different account, region, bucket etc') to deploy resources.
-if yes, please use `--env-folders`:
+if yes, please use `--env-folders`.  
+if you want you can use the same cerdentials/backend in all of the environments, `--env-folders`:
 ```
 # --account-id and --cicd-role are optional and needed for CICD
 ./project_init/project_init.sh --env-folders \
@@ -66,7 +67,7 @@ cd ./<project-name>
 **5.** set the newly created project repo as the origin and commit:
 ```
 git init -b main
-git remote add origin <repository-url>
+git remote add origin <repository-url>.git
 git add .
 git commit -m "Initial commit"
 ```
@@ -87,6 +88,8 @@ Example: ./backend_init/backend_init.sh myproject us-east-1
 If you already have you can use those later.
 
 ### Terraform apply manually
+
+To apply using CI/CD via OIDC instead (recommended) see: [**Apply using CI/CD**](#generate-s3-backend-and-dynamodb-lock-using-backend_initsh)
 
 #### for `--env-folders` project
 <details>
@@ -174,7 +177,7 @@ Create OIDC provider for github actions if not exist:
 
     aws iam create-open-id-connect-provider \
       --url "https://token.actions.githubusercontent.com" \
-      --client-id-list "sts.amazonaws.com
+      --client-id-list "sts.amazonaws.com"
 </details>
 
 ---
@@ -183,7 +186,8 @@ Create OIDC provider for github actions if not exist:
 <summary>Create IAM policy</summary>
 
 Create a policy file with the required backend permissions  
-(add more actions if your Terraform code deploys other AWS resources).
+(add more actions if your Terraform code deploys other AWS resources).  
+**make sure to change the fields there `<ACCOUNT_ID>, <S3_BUCKET_NAME>, <DDB_LOCK_TABLE_NAME>, <REGION>`.**
 
     cat > terraform-backend-policy.json <<'EOF'
     {
@@ -198,8 +202,8 @@ Create a policy file with the required backend permissions
             "s3:ListBucket"
           ],
           "Resource": [
-            "arn:aws:s3:::<S3_BUCKET>",
-            "arn:aws:s3:::<S3_BUCKET>/*"
+            "arn:aws:s3:::<S3_BUCKET_NAME>",
+            "arn:aws:s3:::<S3_BUCKET_NAME>/*"
           ]
         },
         {
@@ -210,7 +214,7 @@ Create a policy file with the required backend permissions
             "dynamodb:DeleteItem",
             "dynamodb:DescribeTable"
           ],
-          "Resource": "arn:aws:dynamodb:<REGION>:<ACCOUNT_ID>:table/<DDB_LOCK_TABLE>"
+          "Resource": "arn:aws:dynamodb:<REGION>:<ACCOUNT_ID>:table/<DDB_LOCK_TABLE_NAME>"
         }
       ]
     }
@@ -221,6 +225,8 @@ Create a policy file with the required backend permissions
 
 <details>
 <summary>Create Trust policy for the IAM role</summary>
+
+**make sure to change the fields there `<ACCOUNT_ID>, <ORG>, <REPO>`.**
 
     cat > trust-policy.json <<'EOF'
     {
@@ -237,7 +243,7 @@ Create a policy file with the required backend permissions
               "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
             },
             "StringLike": {
-              "token.actions.githubusercontent.com:sub": "repo:<ORG>/<REPO>:ref:refs/heads/<BRANCH>"
+              "token.actions.githubusercontent.com:sub": "repo:<ORG>/<REPO>:*"
             }
           }
         }
@@ -259,7 +265,9 @@ Create a policy file with the required backend permissions
 ---
 
 <details>
-<summary>Attach IAM policy to the role</summary>
+<summary>Create and attach IAM policy to the role</summary>
+
+**make sure to change the fields there `<ROLE_NAME>, <POLICY_NAME>`.**
 
     aws iam put-role-policy \
       --role-name <ROLE_NAME> \
@@ -317,11 +325,13 @@ This configuration creates 4 subnets within your VPC.
 
 Distributed under the Apache License 2.0. See `LICENSE.txt` for more information.
 
-## Contact
+## Contact & Credits
 
+**Tal Karucci**  
 Email: talk474747@gmail.com  
 Linkedin: [www.linkedin.com/in/tal-karucci](https://www.linkedin.com/in/tal-karucci-678286290)  
-Project Link: [github.com/Karuch/aws-terraform-project-generator](https://github.com/Karuch/aws-terraform-project-generator)
 
-Special thanks for my colleague **Aharon Ulanov** for the help.  
+
+special thanks for my colleague for the help and testing:  
+**Aharon Ulano**  
 Linkedin: [www.linkedin.com/in/aharon-ulano](https://www.linkedin.com/in/aharon-ulano-861222264/)  
