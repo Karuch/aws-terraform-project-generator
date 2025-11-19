@@ -1,7 +1,9 @@
 # aws-terraform-project-generator
 
-**aws-terraform-project-generator** is a project to deploy basic terraform structure template ready to use with **best practices** and **CI/CD**!
+**aws-terraform-project-generator** is an automation to deploy basic terraform structure template ready to use with **best practices** and **CI/CD to destroy and apply using OIDC**.  
 it currently support two structure methodology: `env folders` and `workspaces`.
+
+![image](https://i.imgur.com/yfldxXh.png)
 
 ## Getting Started
 
