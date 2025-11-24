@@ -1,0 +1,12 @@
+project              = "myproject"
+environment          = "staging"
+aws_region           = "us-east-1"   // make sure to change this to desired region (must be same as provider.tf)
+vpc_cidr             = "10.2.0.0/16" // remember to not use overlapping CIDR
+availability_zones   = ["us-east-1a", "us-east-1b"]
+public_subnet_count  = 1
+private_subnet_count = 1
+subnet_newbits       = 4
+enable_dns_support   = true
+enable_dns_hostnames = true
+ami_id               = "ami-0c02fb55956c7d316"
+instance_type        = "t2.micro"

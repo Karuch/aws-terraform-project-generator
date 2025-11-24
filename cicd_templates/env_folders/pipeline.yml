@@ -1,0 +1,158 @@
+name: Terraform CI (Self-Hosted Terraform)
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+  push:
+    branches: ["main", "dev", "staging"]
+
+jobs:
+  fmt:
+    name: Test - Terraform Format Check
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:1.13.4
+    env:
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Terraform Format Check (env)
+        run: terraform fmt -check -recursive ./envs/${{ env.ENVIRONMENT }}
+      - name: Terraform Format Check (modules)
+        run: terraform fmt -check -recursive ./modules
+
+  lint:
+    name: Test - Terraform Lint
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:1.13.4
+    env:
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install TFLint
+        run: |
+          apk add --no-cache curl bash
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+      - name: Run TFLint (env)
+        run: |
+          tflint --init --chdir=./envs/${{ env.ENVIRONMENT }} --config="$(pwd)/.tflint.hcl"
+          tflint --recursive --chdir=./envs/${{ env.ENVIRONMENT }} --config="$(pwd)/.tflint.hcl"
+      - name: Run TFLint (modules)
+        run: |
+          tflint --init --chdir=./modules --config="$(pwd)/.tflint.hcl"
+          tflint --recursive --chdir=./modules --config="$(pwd)/.tflint.hcl"
+
+  plan:
+    name: Test - Terraform Plan
+    runs-on: ubuntu-latest
+
+    container:
+      image: hashicorp/terraform:1.13.4
+
+    env:
+      # if branch == main → prod, otherwise use branch name
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Terraform Init (no backend)
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform init -backend=false
+
+      - name: Terraform Validate
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform validate -no-color
+
+      - name: Terraform Plan (local only)
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform plan -input=false -lock=false -refresh=false -out=tfplan || true
+
+      - name: Upload Terraform Plan (if exists)
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: envs/${{ env.ENVIRONMENT }}/tfplan
+          if-no-files-found: ignore
+
+  checkov:
+    name: Test - Security Scan
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:1.13.4
+    env:
+      # if branch == main → prod, otherwise use branch name
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Checkov
+        run: |
+          apk add --no-cache python3 py3-pip
+          pip install --break-system-packages checkov
+
+      - name: Run Checkov Scan
+        run: |
+          checkov -d ./envs/${{ env.ENVIRONMENT }} --framework terraform --compact --quiet
+          checkov -d ./modules --framework terraform --compact --quiet
+
+  apply:
+    name: Deploy - Terraform Apply
+    needs: [fmt, lint, plan, checkov]
+    runs-on: ubuntu-latest
+
+    container:
+      image: hashicorp/terraform:1.13.4
+
+    env:
+      # if branch == main → prod, otherwise use branch name
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load environment settings
+        run: |
+          . envs/${{ env.ENVIRONMENT }}/env.config
+          echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "AWS_ROLE_NAME=$AWS_ROLE_NAME" >> $GITHUB_ENV
+
+      - name: Install Node.js (for GitHub Actions runtime)
+        run: |
+          apk add --no-cache nodejs npm
+          node --version
+          npm --version
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+
+      - name: Terraform Init
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform init -input=false -reconfigure
+
+      - name: Terraform Plan (debug / optional)
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform apply -input=false "tfplan"

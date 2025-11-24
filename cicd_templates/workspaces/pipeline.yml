@@ -1,0 +1,137 @@
+name: Terraform CI (Self-Hosted Terraform)
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+  push:
+    branches: ["main", "dev", "staging"]
+
+jobs:
+  fmt:
+    name: Test - Terraform Format Check
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:1.13.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+  lint:
+    name: Test -Terraform Lint
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:1.13.4
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install TFLint
+        run: |
+          apk add --no-cache curl bash
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+
+      - name: Run TFLint
+        run: |
+          tflint --init --config="$(pwd)/.tflint.hcl"
+          tflint --recursive --config="$(pwd)/.tflint.hcl"
+
+  plan:
+    name: Test - Terraform Plan
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:1.13.4
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Terraform Init (no backend)
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        run: terraform validate -no-color
+
+      - name: Terraform Plan (local only)
+        run: |
+          terraform plan -input=false -lock=false -refresh=false -out=tfplan || true
+
+      - name: Upload Terraform Plan (if exists)
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: check/tfplan
+          if-no-files-found: ignore
+
+  checkov:
+    name: Test - Security Scan
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:1.13.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Checkov
+        run: |
+          apk add --no-cache python3 py3-pip
+          pip install --break-system-packages checkov
+
+      - name: Run Checkov Scan
+        run: |
+          checkov -d . --framework terraform --compact --quiet \
+          --output-file-path checkov_report.json
+
+      - name: Upload Checkov Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-report
+          path: check/checkov_report.json
+          if-no-files-found: ignore
+
+ 
+  apply:
+    name: Deploy - Terraform Apply
+    needs: [fmt, lint, plan, checkov]
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:1.13.4
+    env:
+      AWS_REGION: ""
+      AWS_ACCOUNT_ID: ""
+      AWS_ROLE_NAME: ""
+      # if branch == main → prod, otherwise use branch name
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+      
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js (for GitHub Actions runtime)
+        run: |
+          apk add --no-cache nodejs npm
+          node --version
+          npm --version
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+
+      - name: Terraform Init
+        run: |
+          terraform init -input=false -reconfigure
+
+      - name: Terraform Workspace (create or select)
+        run: |
+          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
+
+      - name: Terraform Plan
+        run: terraform plan -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply "tfplan"

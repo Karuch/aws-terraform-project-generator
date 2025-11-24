@@ -1,0 +1,73 @@
+name: Terraform Destroy (Manual)
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Warning: Are you sure you want to destroy the environment for the branch you selected? To confirm, type the exact branch name you selected."
+        required: true
+        default: dev
+
+jobs:
+  destroy:
+    name: Destroy - Terraform
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:1.13.4
+    env:
+      AWS_REGION: ""
+      AWS_ACCOUNT_ID: ""
+      AWS_ROLE_NAME: ""
+      # if branch == main → prod, otherwise use branch name
+      ENVIRONMENT: ${{ github.event.inputs.environment == 'main' && 'prod' || github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate environment matches expected ENVIRONMENT
+        run: |
+          INPUT_ENV="${{ env.ENVIRONMENT }}"
+          EXPECTED_ENV=${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+          EXPECTED_ENV_ERROR=${{ github.ref_name }}
+
+          echo "Input environment: $INPUT_ENV"
+          echo "Expected (from env.ENVIRONMENT): $EXPECTED_ENV"
+
+          if [ "$INPUT_ENV" != "$EXPECTED_ENV" ]; then
+            echo "❌ ERROR: Environment input ('$INPUT_ENV') must match expected ('$EXPECTED_ENV_ERROR')"
+            exit 1
+          fi
+
+          echo "✅ Environment input matches expected environment."
+          
+      - name: Install Node.js (for GitHub Actions runtime)
+        run: |
+          apk add --no-cache nodejs npm
+          node --version
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform # that's needed only if terraform does not exist in the container or maybe just keep this in case client will change
+        uses: hashicorp/setup-terraform@v3  # the environement to something else then terraform container or I
+        with:
+          terraform_version: 1.13.4
+
+      - name: Terraform Init
+        run: |
+          terraform init -input=false -reconfigure
+
+      - name: Terraform Workspace (create or select)
+        run: |
+          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
+
+      - name: Terraform Destroy
+        run: |
+          terraform plan -destroy -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" -out=tfplan-destroy
+          terraform apply -auto-approve "tfplan-destroy"
