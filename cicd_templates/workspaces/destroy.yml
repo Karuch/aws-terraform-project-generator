@@ -13,8 +13,9 @@ on:
         default: dev
 
 jobs:
-  destroy:
-    name: Destroy - Terraform
+
+  plan:
+    name: Create terraform Destroy plan
     runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
@@ -24,8 +25,14 @@ jobs:
       AWS_ROLE_NAME: ""
       # if branch == main → prod, otherwise use branch name
       ENVIRONMENT: ${{ github.event.inputs.environment == 'main' && 'prod' || github.event.inputs.environment }}
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install Node.js (for GitHub Actions runtime)
+        run: |
+          apk add --no-cache nodejs npm
+          node --version
 
       - name: Validate environment matches expected ENVIRONMENT
         run: |
@@ -42,6 +49,53 @@ jobs:
           fi
 
           echo "✅ Environment input matches expected environment."
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+
+      - name: Terraform Init
+        run: terraform init -input=false -reconfigure
+
+      - name: Terraform Workspace (create or select)
+        run: |
+          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
+
+      - name: Terraform Destroy Plan (NO APPLY)
+        run: |
+          terraform plan \
+            -destroy \
+            -input=false \
+            -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" \
+            -out=tfplan-destroy
+
+      - name: Upload Destroy Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-destroy-${{ env.ENVIRONMENT }}
+          path: tfplan-destroy
+
+  destroy:
+    name: Destroy - Terraform
+    needs: plan
+    runs-on: ubuntu-latest
+    container:
+      image: hashicorp/terraform:1.13.4
+    env:
+      AWS_REGION: ""
+      AWS_ACCOUNT_ID: ""
+      AWS_ROLE_NAME: ""
+      # if branch == main → prod, otherwise use branch name
+      ENVIRONMENT: ${{ github.event.inputs.environment == 'main' && 'prod' || github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
           
       - name: Install Node.js (for GitHub Actions runtime)
         run: |
@@ -54,6 +108,12 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Download Destroy Plan File
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-destroy-${{ env.ENVIRONMENT }}
+          path: ./
+
       - name: Setup Terraform # that's needed only if terraform does not exist in the container or maybe just keep this in case client will change
         uses: hashicorp/setup-terraform@v3  # the environement to something else then terraform container or I
         with:
@@ -62,6 +122,23 @@ jobs:
       - name: Terraform Init
         run: |
           terraform init -input=false -reconfigure
+
+      - name: Plan review
+        if: ${{ github.run_attempt < 2 }}
+        run: |
+          echo "❌ Failed: please review the plan before destroying."
+          echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
+          echo "make sure to run only the 'destroy' job again and not the 'plan' job."
+
+          echo "========= PLAN REVIEW ========="
+          terraform show tfplan-destroy || echo "Plan is binary or missing"
+          echo "================================"
+
+          echo "❌ Failed: please review the plan before destroying."
+          echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
+          echo "make sure to run only the 'destroy' job again and not the 'plan' job."
+
+          exit 1
 
       - name: Terraform Workspace (create or select)
         run: |
