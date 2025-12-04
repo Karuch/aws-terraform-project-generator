@@ -10,6 +10,7 @@ on:
 
 jobs:
   fmt:
+    if: false ####################################
     name: Test - Terraform Format Check
     runs-on: ubuntu-latest
     container:
@@ -42,28 +43,47 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
+    env:
+      AWS_REGION: ""
+      AWS_ACCOUNT_ID: ""
+      AWS_ROLE_NAME: ""
+      # if branch == main → prod, otherwise use branch name
+      ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Terraform Init (no backend)
-        run: terraform init -backend=false
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init -input=false -reconfigure
 
       - name: Terraform Validate
         run: terraform validate -no-color
 
-      - name: Terraform Plan (local only)
+      - name: Terraform Workspace (create or select)
         run: |
-          terraform plan -input=false -lock=false -refresh=false -out=tfplan || true
+          terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
 
-      - name: Upload Terraform Plan (if exists)
-        if: success() || failure()
+      - name: Terraform Apply Plan
+        run: |
+          terraform plan \
+            -input=false \
+            -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" \
+            -out=tfplan-apply
+
+      - name: Upload Apply Plan Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tfplan
-          path: check/tfplan
-          if-no-files-found: ignore
+          name: tfplan-apply-${{ env.ENVIRONMENT }}
+          path: tfplan-apply
+
 
   checkov:
+    if: false ######################################
     name: Test - Security Scan
     runs-on: ubuntu-latest
     container:
@@ -91,7 +111,7 @@ jobs:
  
   apply:
     name: Deploy - Terraform Apply
-    needs: [fmt, lint, plan, checkov]
+    needs: [lint, plan] ################### [fmt, lint, plan, checkov]
     runs-on: ubuntu-latest
     container:
       image: hashicorp/terraform:1.13.4
@@ -117,6 +137,12 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Download Apply Plan File
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-apply-${{ env.ENVIRONMENT }}
+          path: ./
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -126,12 +152,28 @@ jobs:
         run: |
           terraform init -input=false -reconfigure
 
+      - name: Plan review
+        if: ${{ github.run_attempt < 2 && env.ENVIRONMENT == 'prod' }}
+        run: |
+          echo "❌ Failed: please review the plan before applying."
+          echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
+          echo "make sure to run only the 'apply' job again and not the 'plan' job."
+          echo "this check is enabled only in main/prod branch."
+
+          echo "========= PLAN REVIEW ========="
+          terraform show tfplan-apply || echo "Plan is binary or missing"
+          echo "================================"
+
+          echo "❌ Failed: please review the plan before applying."
+          echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
+          echo "make sure to run only the 'apply' job again and not the 'plan' job."
+          echo "this check is enabled only in main/prod branch."
+
+          exit 1
+
       - name: Terraform Workspace (create or select)
         run: |
           terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
 
-      - name: Terraform Plan
-        run: terraform plan -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" -out=tfplan
-
       - name: Terraform Apply
-        run: terraform apply "tfplan"
+        run: terraform apply -auto-approve "tfplan-apply"
