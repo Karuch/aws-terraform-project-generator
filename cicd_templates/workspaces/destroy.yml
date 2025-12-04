@@ -45,6 +45,7 @@ jobs:
 
           if [ "$INPUT_ENV" != "$EXPECTED_ENV" ]; then
             echo "❌ ERROR: Environment input ('$INPUT_ENV') must match expected ('$EXPECTED_ENV_ERROR')"
+            echo "in case you didn't want to nuke '$EXPECTED_ENV_ERROR', I just saved your life :)"
             exit 1
           fi
 
@@ -68,7 +69,7 @@ jobs:
         run: |
           terraform workspace select ${{ env.ENVIRONMENT }} || terraform workspace new ${{ env.ENVIRONMENT }}
 
-      - name: Terraform Destroy Plan (NO APPLY)
+      - name: Generate terraform destroy plan
         run: |
           terraform plan \
             -destroy \

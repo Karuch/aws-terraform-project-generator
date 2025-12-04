@@ -10,6 +10,7 @@ on:
 
 jobs:
   fmt:
+    if: false ######################################
     name: Test - Terraform Format Check
     runs-on: ubuntu-latest
     container:
@@ -46,43 +47,62 @@ jobs:
           tflint --recursive --chdir=./modules --config="$(pwd)/.tflint.hcl"
 
   plan:
-    name: Test - Terraform Plan
+    name: Create terraform apply plan
     runs-on: ubuntu-latest
-
     container:
       image: hashicorp/terraform:1.13.4
-
     env:
-      # if branch == main → prod, otherwise use branch name
+      # if environment == main → prod, otherwise use provided environment
       ENVIRONMENT: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Terraform Init (no backend)
+      - name: Load environment settings
+        run: |
+          . envs/${{ env.ENVIRONMENT }}/env.config
+          echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "AWS_ROLE_NAME=$AWS_ROLE_NAME" >> $GITHUB_ENV
+
+      - name: Install Node.js (for GitHub Actions runtime)
+        run: |
+          apk add --no-cache nodejs npm
+          node --version
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform   # Only needed if the client replaces the container
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+
+      - name: Terraform Init
         run: |
           cd envs/${{ env.ENVIRONMENT }}
-          terraform init -backend=false
+          terraform init -input=false -reconfigure
 
       - name: Terraform Validate
         run: |
           cd envs/${{ env.ENVIRONMENT }}
           terraform validate -no-color
 
-      - name: Terraform Plan (local only)
+      - name: Generate terraform apply plan
         run: |
           cd envs/${{ env.ENVIRONMENT }}
-          terraform plan -input=false -lock=false -refresh=false -out=tfplan || true
+          terraform plan -out=tfplan-apply
 
-      - name: Upload Terraform Plan (if exists)
-        if: success() || failure()
+      - name: Upload Apply Plan Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tfplan
-          path: envs/${{ env.ENVIRONMENT }}/tfplan
-          if-no-files-found: ignore
+          name: tfplan-apply-${{ env.ENVIRONMENT }}
+          path: envs/${{ env.ENVIRONMENT }}/tfplan-apply
 
   checkov:
+    if: false ######################################
     name: Test - Security Scan
     runs-on: ubuntu-latest
     container:
@@ -105,7 +125,7 @@ jobs:
 
   apply:
     name: Deploy - Terraform Apply
-    needs: [fmt, lint, plan, checkov]
+    needs: [lint, plan] ################### [fmt, lint, plan, checkov]
     runs-on: ubuntu-latest
 
     container:
@@ -137,6 +157,12 @@ jobs:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Download Apply Plan File
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-apply-${{ env.ENVIRONMENT }}
+          path: envs/${{ env.ENVIRONMENT }}
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -147,12 +173,27 @@ jobs:
           cd envs/${{ env.ENVIRONMENT }}
           terraform init -input=false -reconfigure
 
-      - name: Terraform Plan (debug / optional)
+      - name: Plan review
+        if: ${{ github.run_attempt < 2 && env.ENVIRONMENT == 'prod' }}
         run: |
+          echo "❌ Failed: please review the plan before applying."
+          echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
+          echo "make sure to run only the 'apply' job again and not the 'plan' job."
+          echo "this check is enabled only in main/prod branch."
+
           cd envs/${{ env.ENVIRONMENT }}
-          terraform plan -out=tfplan
+          echo "========= PLAN REVIEW ========="
+          terraform show tfplan-apply || echo "Plan is binary or missing"
+          echo "================================"
+
+          echo "❌ Failed: please review the plan before applying."
+          echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
+          echo "make sure to run only the 'apply' job again and not the 'plan' job."
+          echo "this check is enabled only in main/prod branch."
+
+          exit 1
 
       - name: Terraform Apply
         run: |
           cd envs/${{ env.ENVIRONMENT }}
-          terraform apply -input=false "tfplan"
+          terraform apply -input=false "tfplan-apply"

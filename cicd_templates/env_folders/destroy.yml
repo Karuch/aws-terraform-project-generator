@@ -13,17 +13,14 @@ on:
         default: dev
 
 jobs:
-  destroy:
-    name: Destroy - Terraform
+  plan:
+    name: Create terraform Destroy plan
     runs-on: ubuntu-latest
-
     container:
       image: hashicorp/terraform:1.13.4
-
     env:
       # if environment == main → prod, otherwise use provided environment
       ENVIRONMENT: ${{ github.event.inputs.environment == 'main' && 'prod' || github.event.inputs.environment }}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -38,6 +35,7 @@ jobs:
 
           if [ "$INPUT_ENV" != "$EXPECTED_ENV" ]; then
             echo "❌ ERROR: Environment input ('$INPUT_ENV') must match expected ('$EXPECTED_ENV_ERROR')"
+            echo "in case you didn't want to nuke '$EXPECTED_ENV_ERROR', I just saved your life :)"
             exit 1
           fi
 
@@ -71,8 +69,87 @@ jobs:
           cd envs/${{ env.ENVIRONMENT }}
           terraform init -input=false -reconfigure
 
-      - name: Terraform Destroy
+      - name: Generate terraform destroy plan
         run: |
           cd envs/${{ env.ENVIRONMENT }}
           terraform plan -destroy -out=tfplan-destroy
+
+      - name: Upload Destroy Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-destroy-${{ env.ENVIRONMENT }}
+          path: envs/${{ env.ENVIRONMENT }}/tfplan-destroy
+
+  destroy:
+    name: Destroy - Terraform
+    needs: plan
+    runs-on: ubuntu-latest
+
+    container:
+      image: hashicorp/terraform:1.13.4
+    
+    env:
+      # if environment == main → prod, otherwise use provided environment
+      ENVIRONMENT: ${{ github.event.inputs.environment == 'main' && 'prod' || github.event.inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load environment settings
+        run: |
+          . envs/${{ env.ENVIRONMENT }}/env.config
+          echo "AWS_REGION=$AWS_REGION" >> $GITHUB_ENV
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "AWS_ROLE_NAME=$AWS_ROLE_NAME" >> $GITHUB_ENV
+
+      - name: Install Node.js (for GitHub Actions runtime)
+        run: |
+          apk add --no-cache nodejs npm
+          node --version
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/${{ env.AWS_ROLE_NAME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download Destroy Plan File
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-destroy-${{ env.ENVIRONMENT }}
+          path: envs/${{ env.ENVIRONMENT }}
+
+      - name: Setup Terraform   # Only needed if the client replaces the container
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.4
+
+      - name: Terraform Init
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
+          terraform init -input=false -reconfigure
+
+      - name: Plan review
+        if: ${{ github.run_attempt < 2 && env.ENVIRONMENT == 'prod' }}
+        run: |
+          echo "❌ Failed: please review the plan before destroying."
+          echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
+          echo "make sure to run only the 'destroy' job again and not the 'plan' job."
+          echo "this check is enabled only in main/prod branch."
+
+          cd envs/${{ env.ENVIRONMENT }}
+          echo "========= PLAN REVIEW ========="
+          terraform show tfplan-destroy || echo "Plan is binary or missing"
+          echo "================================"
+
+          echo "❌ Failed: please review the plan before destroying."
+          echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
+          echo "make sure to run only the 'destroy' job again and not the 'plan' job."
+          echo "this check is enabled only in main/prod branch."
+
+          exit 1
+
+      - name: Terraform Destroy
+        run: |
+          cd envs/${{ env.ENVIRONMENT }}
           terraform apply -auto-approve "tfplan-destroy"
