@@ -124,11 +124,12 @@ jobs:
           terraform init -input=false -reconfigure
 
       - name: Plan review
-        if: ${{ github.run_attempt < 2 }}
+        if: ${{ github.run_attempt < 2 && env.ENVIRONMENT == 'prod' }}
         run: |
           echo "❌ Failed: please review the plan before destroying."
           echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
           echo "make sure to run only the 'destroy' job again and not the 'plan' job."
+          echo "this check is enabled only in main/prod branch."
 
           echo "========= PLAN REVIEW ========="
           terraform show tfplan-destroy || echo "Plan is binary or missing"
@@ -137,6 +138,7 @@ jobs:
           echo "❌ Failed: please review the plan before destroying."
           echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
           echo "make sure to run only the 'destroy' job again and not the 'plan' job."
+          echo "this check is enabled only in main/prod branch."
 
           exit 1
 

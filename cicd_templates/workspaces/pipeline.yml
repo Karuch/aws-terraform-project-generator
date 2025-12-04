@@ -71,7 +71,6 @@ jobs:
       - name: Terraform Apply Plan
         run: |
           terraform plan \
-            -apply \
             -input=false \
             -var-file="vars/${{ env.ENVIRONMENT }}.tfvars" \
             -out=tfplan-apply
@@ -154,11 +153,12 @@ jobs:
           terraform init -input=false -reconfigure
 
       - name: Plan review
-        if: ${{ github.run_attempt < 2 }}
+        if: ${{ github.run_attempt < 2 && env.ENVIRONMENT == 'prod' }}
         run: |
           echo "❌ Failed: please review the plan before applying."
           echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
           echo "make sure to run only the 'apply' job again and not the 'plan' job."
+          echo "this check is enabled only in main/prod branch."
 
           echo "========= PLAN REVIEW ========="
           terraform show tfplan-apply || echo "Plan is binary or missing"
@@ -167,6 +167,7 @@ jobs:
           echo "❌ Failed: please review the plan before applying."
           echo "after reviewing you can run this job again, it will work. (based on 'github.run_attempt' value)"
           echo "make sure to run only the 'apply' job again and not the 'plan' job."
+          echo "this check is enabled only in main/prod branch."
 
           exit 1
 
