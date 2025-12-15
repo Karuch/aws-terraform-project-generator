@@ -10,7 +10,6 @@ on:
 
 jobs:
   fmt:
-    if: false ######################################
     name: Test - Terraform Format Check
     runs-on: ubuntu-latest
     container:
@@ -102,7 +101,6 @@ jobs:
           path: envs/${{ env.ENVIRONMENT }}/tfplan-apply
 
   checkov:
-    if: false ######################################
     name: Test - Security Scan
     runs-on: ubuntu-latest
     container:
@@ -125,7 +123,7 @@ jobs:
 
   apply:
     name: Deploy - Terraform Apply
-    needs: [lint, plan] ################### [fmt, lint, plan, checkov]
+    needs: [fmt, lint, plan, checkov]
     runs-on: ubuntu-latest
 
     container:
