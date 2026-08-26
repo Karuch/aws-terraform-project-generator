@@ -228,6 +228,14 @@ Create a policy file with the required backend permissions
 <details>
 <summary>Create Trust policy for the IAM role</summary>
 
+> The trust policy for GitHub Actions OIDC may require different syntax when specifying repositories created after July 15, 2026. If the trust policy uses the incorrect syntax, the CI/CD pipeline may fail with an **unauthorized/authorization error when attempting to assume the AWS IAM role**.
+>
+> For more information, see the following section:
+>
+> [GitHub Docs - Immutable subject claims](https://docs.github.com/en/actions/reference/security/oidc?utm_source=chatgpt.com#immutable-subject-claims)
+
+
+
 **make sure to change the fields there `<ACCOUNT_ID>, <ORG>, <REPO>`.**
 
     cat > trust-policy.json <<'EOF'
